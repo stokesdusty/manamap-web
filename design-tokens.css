@@ -1,0 +1,153 @@
+/* ===========================================================
+   ManaMap design tokens
+   Drop into your Next.js project as globals.css or import.
+   Paired with Tailwind v4 — use @theme to expose as utilities.
+   =========================================================== */
+
+:root {
+  /* ---------- Surfaces ---------- */
+  --paper: #F5F1E8;
+  --paper-soft: #EFEBDF;
+  --surface: #FFFFFF;
+  --surface-tint: #FBF8F0;
+  --hairline: #E3DCC9;
+  --hairline-strong: #CFC6AD;
+
+  /* ---------- Ink (text) ---------- */
+  --ink: #1A1813;
+  --ink-2: #3D3830;
+  --ink-3: #6B6558;
+  --ink-4: #9A9382;
+  --ink-5: #BFB8A5;
+
+  /* ---------- WUBRG accents — color only ---------- */
+  --w: #D4C68E;
+  --u: #3F6FA8;
+  --b: #2C2730;
+  --r: #BF5142;
+  --g: #5C8A5A;
+
+  /* ---------- Type stack ---------- */
+  --font-serif: 'Newsreader', 'Times New Roman', serif;
+  --font-sans: 'Geist', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
+
+  /* ---------- Type scale ---------- */
+  --text-mono-xs: 10px;     /* uppercase labels, micro-meta */
+  --text-mono-sm: 11px;     /* eyebrows, chips, captions */
+  --text-body-sm: 13px;     /* small body */
+  --text-body: 14px;        /* dense UI body */
+  --text-body-lg: 16px;     /* default body */
+  --text-h4: 18px;          /* card titles */
+  --text-h3: 22px;          /* sub-section titles */
+  --text-h2: 36px;          /* section titles */
+  --text-h1: 64px;          /* page titles */
+  --text-display: 96px;     /* landing hero */
+
+  /* ---------- Letter spacing ---------- */
+  --ls-display: -0.035em;   /* landing hero */
+  --ls-h1: -0.025em;
+  --ls-h2: -0.02em;
+  --ls-h3: -0.01em;
+  --ls-mono: 0.08em;        /* canonical uppercase label */
+  --ls-mono-wide: 0.1em;    /* eyebrow */
+
+  /* ---------- Spacing scale (8px base) ---------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* ---------- Radius ---------- */
+  --r-sm: 4px;     /* small chips */
+  --r-md: 6px;     /* inputs */
+  --r-lg: 8px;     /* cards */
+  --r-xl: 10px;    /* figure / mockup frame */
+  --r-pill: 999px; /* buttons, pills */
+
+  /* ---------- Shadows (use sparingly) ---------- */
+  --shadow-card: 0 1px 0 rgba(0,0,0,0.02);
+  --shadow-figure:
+    0 1px 0 rgba(0,0,0,0.02),
+    0 30px 60px -30px rgba(26,24,19,0.15);
+  --shadow-figure-dark:
+    0 1px 0 rgba(0,0,0,0.4),
+    0 40px 80px -25px rgba(0,0,0,0.5);
+
+  /* ---------- Transition ---------- */
+  --t-fast: 120ms;
+  --t-base: 200ms;
+}
+
+/* =========================================================
+   Tailwind v4 @theme block — drop into globals.css to expose
+   these as Tailwind utilities. Uncomment when wired up.
+   ========================================================= */
+
+/*
+@theme {
+  --color-paper: #F5F1E8;
+  --color-paper-soft: #EFEBDF;
+  --color-surface: #FFFFFF;
+  --color-surface-tint: #FBF8F0;
+  --color-hairline: #E3DCC9;
+  --color-hairline-strong: #CFC6AD;
+
+  --color-ink: #1A1813;
+  --color-ink-2: #3D3830;
+  --color-ink-3: #6B6558;
+  --color-ink-4: #9A9382;
+  --color-ink-5: #BFB8A5;
+
+  --color-w: #D4C68E;
+  --color-u: #3F6FA8;
+  --color-b: #2C2730;
+  --color-r: #BF5142;
+  --color-g: #5C8A5A;
+
+  --font-serif: 'Newsreader', serif;
+  --font-sans: 'Geist', sans-serif;
+  --font-mono: 'Geist Mono', monospace;
+}
+*/
+
+/* =========================================================
+   Recommended <head> font import for Next.js / any HTML
+   =========================================================
+   <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,400..500&family=Geist:wght@300..700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+   Or, with Next.js `next/font/google`:
+
+   import { Newsreader, Geist, Geist_Mono } from 'next/font/google';
+
+   const serif = Newsreader({ subsets: ['latin'], variable: '--font-serif' });
+   const sans  = Geist({ subsets: ['latin'], variable: '--font-sans' });
+   const mono  = Geist_Mono({ subsets: ['latin'], variable: '--font-mono' });
+*/
+
+/* =========================================================
+   Canonical label style — use this everywhere you'd reach
+   for an eyebrow / metadata / stat caption / chip.
+   ========================================================= */
+.t-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-mono-sm);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-mono);
+  color: var(--ink-3);
+}
+.t-eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-mono-sm);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-mono-wide);
+  color: var(--ink-3);
+}

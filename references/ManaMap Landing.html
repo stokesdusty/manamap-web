@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ManaMap — The directory for MTG creators</title>
+<meta name="description" content="ManaMap is the discovery and infrastructure layer for the MTG creator ecosystem. Find creators by format, content style, audience, and region — then see where they're streaming, posting, and showing up next." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="landing.css" />
+</head>
+<body class="landing">
+
+<!-- ============ Top nav ============ -->
+<nav class="lp-nav">
+  <div class="lp-nav-inner">
+    <a class="lp-brand" href="#" style="border: none;">
+      <span>Mana</span><span class="d"></span><span class="m">Map</span>
+    </a>
+    <div class="lp-nav-links">
+      <a href="#what">What it is</a>
+      <a href="#who">Who it's for</a>
+      <a href="#how">How it works</a>
+      <a href="#roadmap">Roadmap</a>
+    </div>
+    <div class="lp-nav-actions">
+      <a href="#waitlist" style="border: none; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3);">Join waitlist →</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<header class="lp-hero">
+  <div class="lp-wrap">
+
+    <span class="lp-status"><span class="dot"></span>Pre-launch · Summer 2026</span>
+
+    <div class="lp-hero-grid" style="margin-top: 40px;">
+      <div>
+        <h1>The directory for <em>MTG creators.</em></h1>
+        <p class="deck">Search 1,400+ creators by format, content style, audience, and region. See where they're streaming, posting, and showing up next.</p>
+
+        <form class="signup" id="waitlist" onsubmit="event.preventDefault(); this.querySelector('.btn-go').textContent = 'On the list ✓';">
+          <input type="email" placeholder="you@email.com" required />
+          <button type="submit" class="btn-go">Notify me</button>
+        </form>
+
+        <div class="signup-aux">
+          <span>Or</span>
+          <a href="#claim">claim your creator handle →</a>
+          <span style="color: var(--ink-5);">·</span>
+          <span>200 creators &amp; counting</span>
+        </div>
+      </div>
+
+      <aside class="lp-hero-meta">
+        <div class="row"><span class="l">Creators indexed</span><span class="v"><strong>1,412</strong></span></div>
+        <hr />
+        <div class="row"><span class="l">Events tracked</span><span class="v"><strong>38</strong></span></div>
+        <hr />
+        <div class="row"><span class="l">Stores onboarding</span><span class="v"><strong>14</strong></span></div>
+        <hr />
+        <div class="row"><span class="l">Formats covered</span><span class="v">
+          <span class="pips" style="gap: 4px;">
+            <span class="pip w sm"></span>
+            <span class="pip u sm"></span>
+            <span class="pip b sm"></span>
+            <span class="pip r sm"></span>
+            <span class="pip g sm"></span>
+          </span>
+        </span></div>
+      </aside>
+    </div>
+
+  </div>
+</header>
+
+<!-- ============ Strategic quote ============ -->
+<section class="lp-section tight">
+  <div class="lp-wrap">
+    <div class="lp-quote-block">
+      <div>
+        <div class="lp-quote-aside">The thesis</div>
+        <div style="margin-top: 6px; font-family: var(--mono); font-size: 11px; color: var(--ink-4); text-transform: uppercase; letter-spacing: 0.08em;">IMDb + LinkedIn + Bandsintown for MTG</div>
+      </div>
+      <p class="lp-quote">
+        The MTG creator ecosystem is fragmented across ten platforms. <em>ManaMap is the connective tissue —</em> identity, discovery, and events in one place.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Screenshot 1: Discovery ============ -->
+<section class="lp-section" id="what">
+  <div class="lp-wrap">
+    <div class="lp-section-head">
+      <div>
+        <div class="lp-eyebrow">01 · Discover</div>
+      </div>
+      <div>
+        <h2>A search-first front door. <em>No feed, no posts.</em></h2>
+        <p class="sub">Filter by color, format, content style, audience, region. Every combination is a sharable URL. Built to find people, not to host them.</p>
+      </div>
+    </div>
+
+    <div class="shot-stage">
+      <span class="shot-tag tl">Color-pie filter chips</span>
+      <span class="shot-tag tr">Featured · trending · events</span>
+
+      <div class="shot">
+        <div class="chrome">
+          <div class="lights"><span></span><span></span><span></span></div>
+          <div class="url">manamap.gg</div>
+        </div>
+        <div class="canvas">
+          <div class="mock">
+            <div class="nav">
+              <div class="brand"><span>Mana</span><span class="d"></span><span style="font-style: italic">Map</span></div>
+              <div class="links">
+                <span>Discover</span>
+                <span>Events</span>
+                <span>Stores</span>
+                <span>Formats</span>
+              </div>
+              <div class="actions">
+                <button class="btn ghost">Sign in</button>
+                <button class="btn solid">Claim profile</button>
+              </div>
+            </div>
+
+            <div class="hero">
+              <div class="eyebrow">The directory for MTG creators</div>
+              <h1>Find the people behind the format you love.</h1>
+              <p>Search 1,412 creators by format, content style, audience, and region. Then see where they're streaming, posting, and showing up next.</p>
+              <div class="searchbar">
+                <div class="ph">Find a creator, format, or city…</div>
+                <div class="seg">
+                  <span class="s on">Creators</span>
+                  <span class="s">Events</span>
+                  <span class="s">Stores</span>
+                </div>
+                <button class="btn solid">Search</button>
+              </div>
+              <div class="colorrail">
+                <span>Filter by color:</span>
+                <span class="ch"><span class="pip w sm"></span>White</span>
+                <span class="ch"><span class="pip u sm"></span>Blue</span>
+                <span class="ch"><span class="pip b sm"></span>Black</span>
+                <span class="ch"><span class="pip r sm"></span>Red</span>
+                <span class="ch"><span class="pip g sm"></span>Green</span>
+              </div>
+            </div>
+
+            <div class="mock-sec-h">
+              <h4>Featured this week</h4>
+              <span class="more">View all 1,412 →</span>
+            </div>
+            <div class="featured-row">
+              <div class="featured-card">
+                <span class="role">Creator of the week</span>
+                <div class="name">Lyra Vance</div>
+                <div class="blurb">Brewing budget Pauper decks at a pace nobody else can match. 47 builds in 2026, 0 above $35.</div>
+                <div style="margin-top: 14px; display: flex; gap: 6px;"><span class="pip u sm" style="border-color:#3D3830"></span><span class="pip b sm" style="border-color:#3D3830"></span></div>
+                <div class="meta"><span>YouTube · 38k</span><span>Twitch · 4.2k</span><span>PDT</span></div>
+              </div>
+              <div class="creator-card">
+                <div class="avatar">
+                  <div class="colorbar"><span style="background: var(--r)"></span><span style="background: var(--g)"></span></div>
+                </div>
+                <div class="body">
+                  <span style="font-family:'Newsreader',serif; font-size:18px; letter-spacing: -0.01em; color: var(--ink);">Hauke Ostmann</span>
+                  <span class="handle">@hauke · Hamburg</span>
+                  <div class="tags"><span class="tag">cEDH</span><span class="tag">Tournament</span></div>
+                </div>
+                <div class="stats"><span>YT <strong>22k</strong></span><span>TW <strong>6.1k</strong></span></div>
+              </div>
+              <div class="creator-card">
+                <div class="avatar">
+                  <div class="colorbar"><span style="background: var(--w)"></span><span style="background: var(--u)"></span><span style="background: var(--b)"></span></div>
+                </div>
+                <div class="body">
+                  <span style="font-family:'Newsreader',serif; font-size:18px; letter-spacing: -0.01em; color: var(--ink);">Nadia Ruiz</span>
+                  <span class="handle">@nadiabrews · CDMX</span>
+                  <div class="tags"><span class="tag">EDH</span><span class="tag">Comedy</span></div>
+                </div>
+                <div class="stats"><span>YT <strong>91k</strong></span><span>TT <strong>120k</strong></span></div>
+              </div>
+            </div>
+
+            <div class="mock-sec-h">
+              <h4>Trending in EDH</h4>
+              <span class="more">More →</span>
+            </div>
+            <div class="creator-grid">
+              <div class="creator-card">
+                <div class="avatar"><div class="colorbar"><span style="background: var(--g)"></span></div></div>
+                <div class="body">
+                  <span style="font-family:'Newsreader',serif; font-size: 16px;">Mara Okwu</span>
+                  <span class="handle">@stomp · Lagos</span>
+                  <div class="tags"><span class="tag">Budget</span></div>
+                </div>
+              </div>
+              <div class="creator-card">
+                <div class="avatar"><div class="colorbar"><span style="background: var(--u)"></span><span style="background: var(--r)"></span></div></div>
+                <div class="body">
+                  <span style="font-family:'Newsreader',serif; font-size: 16px;">Theo Park</span>
+                  <span class="handle">@izzetbrew · Seoul</span>
+                  <div class="tags"><span class="tag">Brewing</span></div>
+                </div>
+              </div>
+              <div class="creator-card">
+                <div class="avatar"><div class="colorbar"><span style="background: var(--w)"></span><span style="background: var(--g)"></span></div></div>
+                <div class="body">
+                  <span style="font-family:'Newsreader',serif; font-size: 16px;">Eli Bramer</span>
+                  <span class="handle">@selesnyaboy · Boston</span>
+                  <div class="tags"><span class="tag">Casual</span></div>
+                </div>
+              </div>
+              <div class="creator-card">
+                <div class="avatar"><div class="colorbar"><span style="background: var(--b)"></span><span style="background: var(--r)"></span></div></div>
+                <div class="body">
+                  <span style="font-family:'Newsreader',serif; font-size: 16px;">Sage Demir</span>
+                  <span class="handle">@rakdosqueen · Istanbul</span>
+                  <div class="tags"><span class="tag">Reanimator</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="shot-cap"><span class="num">FIG 01</span>Discovery — manamap.gg</div>
+  </div>
+</section>
+
+<!-- ============ Three pillars ============ -->
+<section class="lp-section">
+  <div class="lp-wrap">
+    <div class="lp-section-head">
+      <div>
+        <div class="lp-eyebrow">What it does</div>
+      </div>
+      <div>
+        <h2>Three layers, <em>one canonical surface.</em></h2>
+        <p class="sub">Existing platforms stay the content layer — YouTube, Twitch, Bluesky. ManaMap is the layer that organizes them.</p>
+      </div>
+    </div>
+
+    <div class="pillars">
+      <div class="pillar">
+        <span class="n">01 · Like IMDb</span>
+        <h3>The directory</h3>
+        <p>Structured search across every active MTG creator. Filter by format, color, content type, audience style, region, follower size. The first place fans look — and the first place a sponsor looks before signing a deal.</p>
+        <span class="ref">→ Discovery + recommendations</span>
+      </div>
+      <div class="pillar">
+        <span class="n">02 · Like LinkedIn</span>
+        <h3>The identity layer</h3>
+        <p>One canonical profile per creator. Auto-syncs YouTube, Twitch, Bluesky, Moxfield. Bio, formats, decks, schedule, past appearances. Replaces the Linktree-plus-spreadsheet-plus-screenshot media kit with something real.</p>
+        <span class="ref">→ Profile + media kit</span>
+      </div>
+      <div class="pillar">
+        <span class="n">03 · Like Bandsintown</span>
+        <h3>The events layer</h3>
+        <p>Conventions, RCQs, LGS nights, signings. Creators mark appearances; fans track events; stores discover creators to book. Local scenes get real surface area — Seattle first, then everywhere.</p>
+        <span class="ref">→ Events + store pages + booking</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Screenshot 2: Creator profile ============ -->
+<section class="lp-section">
+  <div class="lp-wrap">
+    <div class="lp-section-head">
+      <div>
+        <div class="lp-eyebrow">02 · Identity</div>
+      </div>
+      <div>
+        <h2>One profile. <em>Every platform.</em></h2>
+        <p class="sub">A canonical page at <code style="font-family: var(--mono); font-size: 14px;">manamap.gg/c/[handle]</code> — auto-aggregating your YouTube uploads, Twitch status, Bluesky posts, Moxfield decks, and upcoming appearances. Built to be your highest-signal link in bio.</p>
+      </div>
+    </div>
+
+    <div class="shot-stage">
+      <span class="shot-tag tl">Structured tags</span>
+      <span class="shot-tag tr">Cross-platform aggregation</span>
+      <span class="shot-tag bl">Event sidebar</span>
+
+      <div class="shot">
+        <div class="chrome">
+          <div class="lights"><span></span><span></span><span></span></div>
+          <div class="url">manamap.gg/c/lyra-vance</div>
+        </div>
+        <div class="canvas">
+          <div class="profile-hero">
+            <div class="profile-id">
+              <div class="profile-avatar"><div class="ring"></div></div>
+              <div style="flex: 1; min-width: 0;">
+                <div class="profile-name">Lyra Vance</div>
+                <div class="profile-handle">@lyrabrews · Portland, OR · Pacific Time</div>
+                <div class="profile-meta">
+                  <span><strong>38.2k</strong> on YouTube</span>
+                  <span><strong>4.2k</strong> on Twitch</span>
+                  <span><strong>12.7k</strong> on Bluesky</span>
+                  <span>Weekly uploads</span>
+                </div>
+              </div>
+              <div class="profile-actions">
+                <button class="btn">Save</button>
+                <button class="btn solid">Follow</button>
+              </div>
+            </div>
+            <p class="profile-bio">Pauper brewer, occasional Modern dabbler. Building decks that are good <em>and</em> cheap. Tuesdays + Fridays on YouTube, Thursday nights on Twitch.</p>
+            <div class="profile-chips">
+              <span class="chip solid">Pauper</span>
+              <span class="chip">Modern</span>
+              <span class="chip">Brewing</span>
+              <span class="chip">Budget</span>
+              <span class="chip">Beginner-friendly</span>
+              <span class="chip">Analytical</span>
+              <span class="chip"><span class="pip u sm" style="vertical-align: middle"></span> U</span>
+              <span class="chip"><span class="pip b sm" style="vertical-align: middle"></span> B</span>
+            </div>
+          </div>
+          <div class="profile-body">
+            <div>
+              <div class="tabs">
+                <span class="t on">Content</span>
+                <span class="t">Decks</span>
+                <span class="t">Events</span>
+                <span class="t">About</span>
+              </div>
+              <div class="content-grid">
+                <div class="content-tile">
+                  <div class="thumb"><span class="platform">YouTube</span></div>
+                  <div class="meta">
+                    <div class="ti">Brewing $30 Dimir Faeries for the new meta</div>
+                    <div class="sub">2 days ago · 14:22 · 18.4k views</div>
+                  </div>
+                </div>
+                <div class="content-tile">
+                  <div class="thumb"><span class="platform">Twitch</span></div>
+                  <div class="meta">
+                    <div class="ti">VOD: Pauper challenge — 5 events, 1 deck</div>
+                    <div class="sub">5 days ago · 3h 12m</div>
+                  </div>
+                </div>
+                <div class="content-tile">
+                  <div class="thumb"><span class="platform">YouTube</span></div>
+                  <div class="meta">
+                    <div class="ti">Why Counterspell is still the line</div>
+                    <div class="sub">1 wk ago · 9:48 · 11.2k</div>
+                  </div>
+                </div>
+                <div class="content-tile">
+                  <div class="thumb"><span class="platform">Podcast</span></div>
+                  <div class="meta">
+                    <div class="ti">Brewing Hour #42 · with @hauke</div>
+                    <div class="sub">2 wks ago · 1h 04m</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <aside class="side">
+              <div class="group">
+                <h6>Platforms</h6>
+                <div class="links">
+                  <span class="link">YouTube <strong>38.2k</strong></span>
+                  <span class="link">Twitch <strong>4.2k</strong></span>
+                  <span class="link">Bluesky <strong>12.7k</strong></span>
+                  <span class="link">Moxfield <strong>3.1k</strong></span>
+                  <span class="link">Patreon <strong>—</strong></span>
+                </div>
+              </div>
+              <div class="group">
+                <h6>Upcoming</h6>
+                <div class="links">
+                  <span class="link">MagicCon Vegas <strong>Jun 14</strong></span>
+                  <span class="link">Pauper Pop-up · PDX <strong>Jul 02</strong></span>
+                </div>
+              </div>
+              <div class="group">
+                <h6>Similar creators</h6>
+                <div class="links">
+                  <span class="link">@hauke</span>
+                  <span class="link">@izzetbrew</span>
+                  <span class="link">@nadiabrews</span>
+                </div>
+              </div>
+              <div class="group">
+                <h6>Business</h6>
+                <div class="links">
+                  <span class="link">Sponsor inquiry →</span>
+                  <span class="link">Media kit →</span>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="shot-cap"><span class="num">FIG 02</span>Creator profile — manamap.gg/c/[handle]</div>
+  </div>
+</section>
+
+<!-- ============ Who it's for ============ -->
+<section class="lp-section" id="who">
+  <div class="lp-wrap">
+    <div class="lp-section-head">
+      <div>
+        <div class="lp-eyebrow">Who it's for</div>
+      </div>
+      <div>
+        <h2>Fans free forever. <em>Creators &amp; stores pay.</em></h2>
+        <p class="sub">Discovery never gets paywalled. Monetization sits on the tools that creators, stores, and brands actually want to pay for — media kits, analytics, sponsored placement, booking.</p>
+      </div>
+    </div>
+
+    <div class="who">
+      <div class="who-card">
+        <div class="lbl">For fans</div>
+        <h3>Find the creators you didn't know existed.</h3>
+        <p>Filter by your format and your vibe. See who's streaming right now, who's at the convention you're going to, who's playing at the store down the street.</p>
+        <ul>
+          <li>Search by format · color · region<span class="mark">FREE</span></li>
+          <li>Save creators &amp; events<span class="mark">FREE</span></li>
+          <li>Local scene pages<span class="mark">FREE</span></li>
+        </ul>
+      </div>
+      <div class="who-card" style="border-top-color: var(--u);">
+        <div class="lbl">For creators</div>
+        <h3>Stop being invisible between uploads.</h3>
+        <p>Claim your handle. Auto-sync every platform. Get found by sponsors and stores. Ship a real media kit in under 90 seconds. Free profile forever; paid tools when you need them.</p>
+        <ul>
+          <li>Public profile + claim<span class="mark">FREE</span></li>
+          <li>Media kit + analytics<span class="mark">$9 / mo</span></li>
+          <li>Sponsorship inbox<span class="mark">$25 / mo</span></li>
+        </ul>
+      </div>
+      <div class="who-card" style="border-top-color: var(--r);">
+        <div class="lbl">For stores &amp; events</div>
+        <h3>Book the creators your community wants.</h3>
+        <p>List your events. Find local creators to invite. Reach fans tracking your region. Turn a Friday night RCQ into a draw — without buying ads on a platform that doesn't know what MTG is.</p>
+        <ul>
+          <li>Store page + event calendar<span class="mark">$25 / mo</span></li>
+          <li>Creator booking marketplace<span class="mark">$79 / mo</span></li>
+          <li>Multi-location · API<span class="mark">$200 / mo</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Screenshot 3: Event page ============ -->
+<section class="lp-section dark" id="how">
+  <div class="lp-wrap">
+    <div class="lp-section-head">
+      <div>
+        <div class="lp-eyebrow" style="color: var(--ink-5)">03 · Events</div>
+      </div>
+      <div>
+        <h2 style="color: var(--paper);">Conventions, RCQs, local nights — <em>all on a calendar.</em></h2>
+        <p class="sub" style="color: var(--ink-5);">Creators mark appearances; fans track events; stores discover talent to book. The events layer is how local scenes become legible — and how Seattle becomes the pilot for everywhere else.</p>
+      </div>
+    </div>
+
+    <div class="shot-stage">
+      <span class="shot-tag tl">Creator appearances</span>
+      <span class="shot-tag tr">Schedule integration</span>
+
+      <div class="shot">
+        <div class="chrome">
+          <div class="lights"><span></span><span></span><span></span></div>
+          <div class="url">manamap.gg/event/magiccon-vegas-2026</div>
+        </div>
+        <div class="canvas">
+          <div class="event-hero">
+            <div class="eyebrow">Convention · Jun 12 — Jun 15, 2026</div>
+            <h2 style="font-family: var(--serif); font-size: 40px; letter-spacing: -0.025em; margin: 4px 0 8px; color: var(--paper); line-height: 1.1;">MagicCon Vegas 2026</h2>
+            <div class="where">
+              <span>Las Vegas Convention Center</span>
+              <span>· 4 days</span>
+              <span>· 38 creators attending</span>
+            </div>
+            <div style="margin-top: 14px; display: flex; gap: 8px;">
+              <button class="btn solid">Track this event</button>
+              <button class="btn" style="background: transparent; border-color: var(--ink-5); color: var(--paper);">Add my appearance</button>
+            </div>
+          </div>
+          <div class="event-body">
+            <div>
+              <h5 style="margin-top:0; color: var(--ink-3);">Creators attending</h5>
+              <div class="attendees">
+                <div class="attendee"><div class="av"></div><div><div class="nm">Lyra Vance</div><div class="rl">Panelist · Sat</div></div></div>
+                <div class="attendee"><div class="av"></div><div><div class="nm">Hauke O.</div><div class="rl">Booth · all 4</div></div></div>
+                <div class="attendee"><div class="av"></div><div><div class="nm">Nadia Ruiz</div><div class="rl">Signing · Fri</div></div></div>
+                <div class="attendee"><div class="av"></div><div><div class="nm">Theo Park</div><div class="rl">Attending</div></div></div>
+                <div class="attendee"><div class="av"></div><div><div class="nm">Eli Bramer</div><div class="rl">Coverage</div></div></div>
+                <div class="attendee"><div class="av"></div><div><div class="nm">Sage Demir</div><div class="rl">Attending</div></div></div>
+                <div class="attendee"><div class="av"></div><div><div class="nm">Mara Okwu</div><div class="rl">Attending</div></div></div>
+                <div class="attendee"><div class="av"></div><div><div class="nm">+ 31 more</div><div class="rl">View all →</div></div></div>
+              </div>
+
+              <h5 style="color: var(--ink-3);">Schedule</h5>
+              <div class="event-sched">
+                <div class="sched-row">
+                  <div class="tm">FRI 10:00</div>
+                  <div class="ti">Pauper meet-up · w/ Lyra Vance &amp; @hauke</div>
+                  <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em;">Booth 312</div>
+                </div>
+                <div class="sched-row">
+                  <div class="tm">FRI 14:00</div>
+                  <div class="ti">Nadia Ruiz signing</div>
+                  <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em;">Booth 118</div>
+                </div>
+                <div class="sched-row">
+                  <div class="tm">SAT 11:30</div>
+                  <div class="ti">EDH brewing panel · 4 creators</div>
+                  <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em;">Stage A</div>
+                </div>
+                <div class="sched-row">
+                  <div class="tm">SUN 09:00</div>
+                  <div class="ti">Modern RCQ · coverage by Eli Bramer</div>
+                  <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em;">Hall 4</div>
+                </div>
+              </div>
+            </div>
+            <aside class="side">
+              <div class="group" style="border:none;">
+                <h6>Organizer</h6>
+                <div class="links"><span class="link">Wizards Events <strong>verified</strong></span></div>
+              </div>
+              <div class="group">
+                <h6>Tracked by</h6>
+                <div class="links"><span class="link">1,402 fans</span></div>
+              </div>
+              <div class="group">
+                <h6>Nearby stores</h6>
+                <div class="links">
+                  <span class="link">Mox Vegas</span>
+                  <span class="link">Pop Culture Paradise</span>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="shot-cap" style="color: var(--ink-5);"><span class="num">FIG 03</span>Event — manamap.gg/event/[slug]</div>
+  </div>
+</section>
+
+<!-- ============ Manifesto / principles ============ -->
+<section class="lp-section dark" style="border-top: 1px solid rgba(255,255,255,0.12); padding-top: 64px;">
+  <div class="lp-wrap">
+    <div class="lp-section-head">
+      <div>
+        <div class="lp-eyebrow" style="color: var(--ink-5)">Principles</div>
+      </div>
+      <div>
+        <h2 style="color: var(--paper);">A tool, <em>not a feed.</em></h2>
+      </div>
+    </div>
+
+    <div class="manifesto">
+      <div class="cell">
+        <span class="n">01</span>
+        <h4>Directory, not feed.</h4>
+        <p>No timeline. No algorithmic ranking by recency. No posting surface. Users come back when they have a job.</p>
+      </div>
+      <div class="cell">
+        <span class="n">02</span>
+        <h4>Structured data first.</h4>
+        <p>Every creator, event, and store has typed metadata. The directory is defensible because the schema is.</p>
+      </div>
+      <div class="cell">
+        <span class="n">03</span>
+        <h4>Existing platforms are the content layer.</h4>
+        <p>YouTube hosts the videos. Twitch hosts the streams. ManaMap deep-links — never replicates.</p>
+      </div>
+      <div class="cell">
+        <span class="n">04</span>
+        <h4>Fans free forever.</h4>
+        <p>Discovery never gets paywalled. Monetization sits on the tools creators, stores, and brands want.</p>
+      </div>
+      <div class="cell">
+        <span class="n">05</span>
+        <h4>SEO is a first-class surface.</h4>
+        <p>Every creator, tag, event, and region is a server-rendered page. Long-tail search is half the moat.</p>
+      </div>
+      <div class="cell">
+        <span class="n">06</span>
+        <h4>Niche-first.</h4>
+        <p>MTG only, for as long as it takes. Pokémon, Lorcana, FaB come later — never as a launch shortcut.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Mini roadmap ============ -->
+<section class="lp-section" id="roadmap">
+  <div class="lp-wrap">
+    <div class="lp-section-head">
+      <div>
+        <div class="lp-eyebrow">Where we are</div>
+      </div>
+      <div>
+        <h2>Shipping in <em>phases.</em></h2>
+        <p class="sub">No big launch. Onboard quietly, build the directory under-the-radar, then announce when the data is the moat.</p>
+      </div>
+    </div>
+
+    <div class="mini-road">
+      <div class="step now">
+        <div class="n">Phase 0 · NOW</div>
+        <h4>Validation</h4>
+        <p>Interviews · waitlist · seeding profiles</p>
+      </div>
+      <div class="step">
+        <div class="n">Phase 1 · Aug 26</div>
+        <h4>MVP</h4>
+        <p>Profiles · search · filters</p>
+      </div>
+      <div class="step">
+        <div class="n">Phase 2 · Q4 26</div>
+        <h4>Discovery</h4>
+        <p>Recs · auto-import · trending</p>
+      </div>
+      <div class="step">
+        <div class="n">Phase 3 · Q1 27</div>
+        <h4>Events</h4>
+        <p>Conventions · stores · local</p>
+      </div>
+      <div class="step">
+        <div class="n">Phase 4 · Q2 27</div>
+        <h4>Monetize</h4>
+        <p>Creator pro · store SaaS</p>
+      </div>
+      <div class="step">
+        <div class="n">Phase 5 · 27+</div>
+        <h4>Marketplace</h4>
+        <p>Booking · sponsorship · expansion</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Final CTA ============ -->
+<section class="lp-final">
+  <div class="lp-wrap" style="max-width: 720px;">
+    <h2>Be there at <span style="font-style: italic;">turn one.</span></h2>
+    <p class="deck">Join the waitlist. We'll email you when the MVP is open, and earlier if you tell us you're a creator who'd claim a profile.</p>
+
+    <form class="signup" onsubmit="event.preventDefault(); this.querySelector('.btn-go').textContent = 'On the list ✓';">
+      <input type="email" placeholder="you@email.com" required />
+      <button type="submit" class="btn-go">Notify me</button>
+    </form>
+
+    <div class="signup-aux">
+      <span>Or</span>
+      <a href="#" id="claim">claim your creator handle →</a>
+      <span style="color: var(--ink-5);">·</span>
+      <span>200 creators &amp; counting</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Footer ============ -->
+<footer class="lp-footer">
+  <div class="lp-wrap">
+    <div class="lp-footer-inner">
+      <div class="col">
+        <h6 style="font-family: var(--serif); font-size: 18px; text-transform: none; letter-spacing: -0.01em;">ManaMap</h6>
+        <div style="font-family: var(--mono); font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em;">The directory for MTG creators.</div>
+      </div>
+      <div class="col">
+        <h6>Product</h6>
+        <ul>
+          <li><a href="#what">Discover</a></li>
+          <li><a href="#">Profiles</a></li>
+          <li><a href="#how">Events</a></li>
+          <li><a href="#">Stores</a></li>
+        </ul>
+      </div>
+      <div class="col">
+        <h6>Company</h6>
+        <ul>
+          <li><a href="#">About</a></li>
+          <li><a href="#roadmap">Roadmap</a></li>
+          <li><a href="#">Press</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </div>
+      <div class="col">
+        <h6>Connect</h6>
+        <ul>
+          <li><a href="#">Bluesky</a></li>
+          <li><a href="#">YouTube</a></li>
+          <li><a href="#">Newsletter</a></li>
+          <li><a href="#">RSS</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="lp-footer-meta">
+      <span>© 2026 ManaMap · Not affiliated with Wizards of the Coast.</span>
+      <span class="pips">
+        <span class="pip w sm"></span>
+        <span class="pip u sm"></span>
+        <span class="pip b sm"></span>
+        <span class="pip r sm"></span>
+        <span class="pip g sm"></span>
+      </span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

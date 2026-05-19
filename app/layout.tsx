@@ -1,0 +1,49 @@
+import type { Metadata } from 'next'
+import { Newsreader, Geist, Geist_Mono } from 'next/font/google'
+import './globals.css'
+
+const newsreader = Newsreader({
+  subsets: ['latin'],
+  variable: '--font-newsreader',
+  style: ['normal', 'italic'],
+  display: 'swap',
+})
+
+const geist = Geist({
+  subsets: ['latin'],
+  variable: '--font-geist',
+  display: 'swap',
+})
+
+const geistMono = Geist_Mono({
+  subsets: ['latin'],
+  variable: '--font-geist-mono',
+  display: 'swap',
+})
+
+export const metadata: Metadata = {
+  title: {
+    template: '%s | ManaMap',
+    default: 'ManaMap — The MTG Creator Directory',
+  },
+  description:
+    'Find MTG creators by format, content style, audience, and region. The discovery and infrastructure layer for the Magic: The Gathering creator ecosystem.',
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_BASE_URL ?? 'https://manamap.gg'
+  ),
+}
+
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
+  return (
+    <html
+      lang="en"
+      className={`${newsreader.variable} ${geist.variable} ${geistMono.variable} h-full`}
+    >
+      <body className="min-h-full flex flex-col bg-paper text-ink antialiased">
+        {children}
+      </body>
+    </html>
+  )
+}

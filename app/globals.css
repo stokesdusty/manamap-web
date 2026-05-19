@@ -1,0 +1,133 @@
+@import "tailwindcss";
+
+/* ── ManaMap design tokens ──────────────────────────────────────────────── */
+:root {
+  /* Surfaces */
+  --paper: #F5F1E8;
+  --paper-soft: #EFEBDF;
+  --surface: #FFFFFF;
+  --surface-tint: #FBF8F0;
+  --hairline: #E3DCC9;
+  --hairline-strong: #CFC6AD;
+
+  /* Ink */
+  --ink: #1A1813;
+  --ink-2: #3D3830;
+  --ink-3: #6B6558;
+  --ink-4: #9A9382;
+  --ink-5: #BFB8A5;
+
+  /* WUBRG accents — data only, never decoration */
+  --w: #D4C68E;
+  --u: #3F6FA8;
+  --b: #2C2730;
+  --r: #BF5142;
+  --g: #5C8A5A;
+
+  /* Type stack */
+  --font-serif: var(--font-newsreader), "Times New Roman", serif;
+  --font-sans: var(--font-geist), "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), "JetBrains Mono", ui-monospace, monospace;
+
+  /* Type scale */
+  --text-mono-xs: 10px;
+  --text-mono-sm: 11px;
+  --text-body-sm: 13px;
+  --text-body: 14px;
+  --text-body-lg: 16px;
+  --text-h4: 18px;
+  --text-h3: 22px;
+  --text-h2: 36px;
+  --text-h1: 64px;
+  --text-display: 96px;
+
+  /* Letter spacing */
+  --ls-display: -0.035em;
+  --ls-h1: -0.025em;
+  --ls-h2: -0.02em;
+  --ls-h3: -0.01em;
+  --ls-mono: 0.08em;
+  --ls-mono-wide: 0.1em;
+
+  /* Radius */
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 8px;
+  --r-xl: 10px;
+  --r-pill: 999px;
+
+  /* Shadows (use sparingly — hero/figure only) */
+  --shadow-card: 0 1px 0 rgba(0, 0, 0, 0.02);
+  --shadow-figure:
+    0 1px 0 rgba(0, 0, 0, 0.02),
+    0 30px 60px -30px rgba(26, 24, 19, 0.15);
+
+  /* Transitions */
+  --t-fast: 120ms;
+  --t-base: 200ms;
+}
+
+/* ── Tailwind v4 @theme — expose tokens as utilities ────────────────────── */
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-soft: var(--paper-soft);
+  --color-surface: var(--surface);
+  --color-surface-tint: var(--surface-tint);
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
+
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-4: var(--ink-4);
+  --color-ink-5: var(--ink-5);
+
+  --color-w: var(--w);
+  --color-u: var(--u);
+  --color-b: var(--b);
+  --color-r: var(--r);
+  --color-g: var(--g);
+
+  --font-serif: var(--font-serif);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+/* ── Base ────────────────────────────────────────────────────────────────── */
+html {
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Canonical label / eyebrow style ───────────────────────────────────── */
+.t-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-mono-sm);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-mono);
+  color: var(--ink-3);
+}
+
+.t-eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-mono-sm);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-mono-wide);
+  color: var(--ink-3);
+}
+
+/* ── WUBRG pips — 12×12 circles, never larger ──────────────────────────── */
+.pip {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.pip-w { background-color: var(--w); }
+.pip-u { background-color: var(--u); }
+.pip-b { background-color: var(--b); }
+.pip-r { background-color: var(--r); }
+.pip-g { background-color: var(--g); }
