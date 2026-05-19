@@ -167,6 +167,11 @@ export const creatorProfiles = pgTable(
       () => contentTags.id
     ),
     verified: boolean('verified').notNull().default(false),
+    isFeatured: boolean('is_featured').notNull().default(false),
+    colors: jsonb('colors')
+      .$type<Array<'w' | 'u' | 'b' | 'r' | 'g'>>()
+      .notNull()
+      .default([]),
     followersTotal: integer('followers_total').notNull().default(0),
     // Maintained by Postgres trigger:
     //   setweight(to_tsvector('english', display_name), 'A') ||
@@ -266,6 +271,7 @@ export const events = pgTable(
     lat: real('lat'),
     lng: real('lng'),
     regionId: bigint('region_id', { mode: 'number' }).references(() => regions.id),
+    storeId: bigint('store_id', { mode: 'number' }).references(() => stores.id),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -273,7 +279,40 @@ export const events = pgTable(
     index('events_start_date_idx').on(t.startDate),
     index('events_region_idx').on(t.regionId),
     index('events_kind_idx').on(t.kind),
+    index('events_store_idx').on(t.storeId),
   ]
+)
+
+export const eventScheduleItems = pgTable(
+  'event_schedule_items',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    eventId: bigint('event_id', { mode: 'number' })
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    dayLabel: varchar('day_label', { length: 16 }).notNull(),
+    startTime: varchar('start_time', { length: 8 }).notNull(),
+    title: text('title').notNull(),
+    locationLabel: varchar('location_label', { length: 128 }),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('event_schedule_items_event_idx').on(t.eventId)]
+)
+
+export const storeCreators = pgTable(
+  'store_creators',
+  {
+    storeId: bigint('store_id', { mode: 'number' })
+      .notNull()
+      .references(() => stores.id, { onDelete: 'cascade' }),
+    creatorId: bigint('creator_id', { mode: 'number' })
+      .notNull()
+      .references(() => creatorProfiles.id, { onDelete: 'cascade' }),
+    role: varchar('role', { length: 64 }).notNull().default('featured'),
+    note: varchar('note', { length: 128 }),
+  },
+  (t) => [primaryKey({ columns: [t.storeId, t.creatorId] })]
 )
 
 export const appearances = pgTable(
@@ -436,8 +475,31 @@ export const eventsRelations = relations(events, ({ one, many }) => ({
     fields: [events.regionId],
     references: [regions.id],
   }),
+  store: one(stores, {
+    fields: [events.storeId],
+    references: [stores.id],
+  }),
   appearances: many(appearances),
+  scheduleItems: many(eventScheduleItems),
   bookings: many(bookings),
+}))
+
+export const eventScheduleItemsRelations = relations(eventScheduleItems, ({ one }) => ({
+  event: one(events, {
+    fields: [eventScheduleItems.eventId],
+    references: [events.id],
+  }),
+}))
+
+export const storeCreatorsRelations = relations(storeCreators, ({ one }) => ({
+  store: one(stores, {
+    fields: [storeCreators.storeId],
+    references: [stores.id],
+  }),
+  creator: one(creatorProfiles, {
+    fields: [storeCreators.creatorId],
+    references: [creatorProfiles.id],
+  }),
 }))
 
 export const appearancesRelations = relations(appearances, ({ one }) => ({
@@ -461,6 +523,8 @@ export const storesRelations = relations(stores, ({ one, many }) => ({
     references: [regions.id],
   }),
   bookings: many(bookings),
+  events: many(events),
+  storeCreators: many(storeCreators),
 }))
 
 export const bookingsRelations = relations(bookings, ({ one }) => ({

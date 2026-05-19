@@ -1,0 +1,28 @@
+import { eq } from 'drizzle-orm'
+import { db } from '@/db'
+import { creatorProfiles } from '@/db/schema'
+
+/**
+ * Returns the current authenticated creator profile.
+ *
+ * TODO: replace body with Clerk lookup when auth is wired:
+ *   const { userId } = await auth()
+ *   if (!userId) return null
+ *   const user = await db.query.users.findFirst({ where: eq(users.clerkId, userId) })
+ *   if (!user) return null
+ *   return db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, user.id), with: {...} })
+ */
+export async function getCurrentCreator() {
+  return db.query.creatorProfiles.findFirst({
+    where: eq(creatorProfiles.slug, 'lyra-vance'),
+    with: {
+      region: true,
+      primaryFormat: { columns: { id: true, code: true, name: true, colors: true } },
+      formats: { with: { format: { columns: { id: true, code: true, name: true } } } },
+      contentTags: { with: { tag: { columns: { id: true, code: true, kind: true, label: true } } } },
+      socialAccounts: { columns: { id: true, platform: true, handle: true, url: true, followers: true } },
+    },
+  })
+}
+
+export type CurrentCreator = NonNullable<Awaited<ReturnType<typeof getCurrentCreator>>>

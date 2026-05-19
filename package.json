@@ -15,12 +15,14 @@
     "db:reset": "tsx db/reset.ts"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
     "@neondatabase/serverless": "^1.1.0",
     "date-fns": "^4.2.1",
     "drizzle-orm": "^0.45.2",
     "next": "^16.2.6",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-hook-form": "^7.76.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
