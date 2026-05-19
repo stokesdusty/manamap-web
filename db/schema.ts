@@ -1,7 +1,8 @@
 import {
   pgTable,
   pgEnum,
-  uuid,
+  bigserial,
+  bigint,
   text,
   varchar,
   boolean,
@@ -16,7 +17,7 @@ import {
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
-// ── Custom Postgres types ─────────────────────────────────────────────────
+// ── Custom Postgres type ──────────────────────────────────────────────────
 const tsvector = customType<{ data: string }>({
   dataType() {
     return 'tsvector'
@@ -24,6 +25,7 @@ const tsvector = customType<{ data: string }>({
 })
 
 // ── Enums ─────────────────────────────────────────────────────────────────
+
 export const userRoleEnum = pgEnum('user_role', [
   'fan',
   'creator',
@@ -41,6 +43,7 @@ export const platformEnum = pgEnum('platform', [
   'instagram',
   'moxfield',
   'archidekt',
+  'podcast',
 ])
 
 export const formatCodeEnum = pgEnum('format_code', [
@@ -77,6 +80,9 @@ export const appearanceRoleEnum = pgEnum('appearance_role', [
   'panelist',
   'judge',
   'competitor',
+  'coverage',
+  'signing',
+  'booth',
   'attendee',
 ])
 
@@ -101,53 +107,99 @@ export const subscriptionCycleEnum = pgEnum('subscription_cycle', [
 // ── Tables ────────────────────────────────────────────────────────────────
 
 export const users = pgTable('users', {
-  id: uuid('id').primaryKey().defaultRandom(),
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
   email: varchar('email', { length: 255 }).notNull().unique(),
   role: userRoleEnum('role').notNull().default('fan'),
   clerkId: varchar('clerk_id', { length: 255 }).unique(),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
 export const regions = pgTable('regions', {
-  id: uuid('id').primaryKey().defaultRandom(),
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
   code: varchar('code', { length: 64 }).notNull().unique(),
   name: varchar('name', { length: 255 }).notNull(),
   timezone: varchar('timezone', { length: 64 }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const formatTags = pgTable('format_tags', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  code: formatCodeEnum('code').notNull().unique(),
+  name: varchar('name', { length: 128 }).notNull(),
+  // Informational WUBRG color associations for UI pip display
+  colors: jsonb('colors')
+    .$type<Array<'w' | 'u' | 'b' | 'r' | 'g'>>()
+    .notNull()
+    .default([]),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const contentTags = pgTable('content_tags', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  code: varchar('code', { length: 64 }).notNull().unique(),
+  kind: contentTagKindEnum('kind').notNull(),
+  label: varchar('label', { length: 128 }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
 export const creatorProfiles = pgTable(
   'creator_profiles',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
-    userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    userId: bigint('user_id', { mode: 'number' }).references(() => users.id, {
+      onDelete: 'cascade',
+    }),
     slug: varchar('slug', { length: 128 }).notNull().unique(),
     displayName: varchar('display_name', { length: 255 }).notNull(),
+    handle: varchar('handle', { length: 128 }),
     bio: text('bio'),
-    regionId: uuid('region_id').references(() => regions.id),
+    avatarUrl: varchar('avatar_url', { length: 2048 }),
+    regionId: bigint('region_id', { mode: 'number' }).references(() => regions.id),
+    // Denormalized for the composite faceted-search index below. Junction tables hold the full many-to-many.
+    primaryFormatId: bigint('primary_format_id', { mode: 'number' }).references(
+      () => formatTags.id
+    ),
+    primaryContentTagId: bigint('primary_content_tag_id', { mode: 'number' }).references(
+      () => contentTags.id
+    ),
     verified: boolean('verified').notNull().default(false),
     followersTotal: integer('followers_total').notNull().default(0),
-    // Maintained by Postgres trigger: setweight(to_tsvector('english', display_name), 'A') || setweight(to_tsvector('english', coalesce(bio,'')), 'B')
+    // Maintained by Postgres trigger:
+    //   setweight(to_tsvector('english', display_name), 'A') ||
+    //   setweight(to_tsvector('english', coalesce(bio, '')), 'B')
     searchVector: tsvector('search_vector'),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    // Full-text search via GIN on the weighted tsvector
     index('creator_profiles_search_vector_idx').using('gin', t.searchVector),
-    index('creator_profiles_slug_idx').on(t.slug),
+    // Typo-tolerant prefix search on display_name via pg_trgm
+    // Requires: CREATE EXTENSION IF NOT EXISTS pg_trgm;
+    index('creator_profiles_display_name_trgm_idx').using(
+      'gin',
+      t.displayName.op('gin_trgm_ops')
+    ),
+    // Composite for faceted search: format + content-style + region
+    index('creator_profiles_facet_idx').on(
+      t.primaryFormatId,
+      t.primaryContentTagId,
+      t.regionId
+    ),
+    // Sort key for directory listings
     index('creator_profiles_followers_idx').on(t.followersTotal),
+    index('creator_profiles_slug_idx').on(t.slug),
     index('creator_profiles_region_idx').on(t.regionId),
   ]
 )
 
 export const socialAccounts = pgTable('social_accounts', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  creatorId: uuid('creator_id')
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  creatorId: bigint('creator_id', { mode: 'number' })
     .notNull()
     .references(() => creatorProfiles.id, { onDelete: 'cascade' }),
   platform: platformEnum('platform').notNull(),
@@ -155,48 +207,32 @@ export const socialAccounts = pgTable('social_accounts', {
   url: varchar('url', { length: 2048 }).notNull(),
   followers: integer('followers').notNull().default(0),
   syncedAt: timestamp('synced_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
-export const formatTags = pgTable('format_tags', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  code: formatCodeEnum('code').notNull().unique(),
-  name: varchar('name', { length: 128 }).notNull(),
-  // Informational array of associated WUBRG color codes
-  colors: jsonb('colors')
-    .$type<Array<'w' | 'u' | 'b' | 'r' | 'g'>>()
-    .notNull()
-    .default([]),
-})
-
-export const contentTags = pgTable('content_tags', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  code: varchar('code', { length: 64 }).notNull().unique(),
-  kind: contentTagKindEnum('kind').notNull(),
-  label: varchar('label', { length: 128 }).notNull(),
-})
-
-// Junction: creator ↔ format
+// Junction: creator ↔ format (many-to-many)
 export const creatorFormats = pgTable(
   'creator_formats',
   {
-    creatorId: uuid('creator_id')
+    creatorId: bigint('creator_id', { mode: 'number' })
       .notNull()
       .references(() => creatorProfiles.id, { onDelete: 'cascade' }),
-    formatId: uuid('format_id')
+    formatId: bigint('format_id', { mode: 'number' })
       .notNull()
       .references(() => formatTags.id),
   },
   (t) => [primaryKey({ columns: [t.creatorId, t.formatId] })]
 )
 
-// Junction: creator ↔ content tag
+// Junction: creator ↔ content tag (many-to-many)
 export const creatorContentTags = pgTable(
   'creator_content_tags',
   {
-    creatorId: uuid('creator_id')
+    creatorId: bigint('creator_id', { mode: 'number' })
       .notNull()
       .references(() => creatorProfiles.id, { onDelete: 'cascade' }),
-    tagId: uuid('tag_id')
+    tagId: bigint('tag_id', { mode: 'number' })
       .notNull()
       .references(() => contentTags.id),
   },
@@ -204,8 +240,8 @@ export const creatorContentTags = pgTable(
 )
 
 export const featuredContent = pgTable('featured_content', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  creatorId: uuid('creator_id')
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  creatorId: bigint('creator_id', { mode: 'number' })
     .notNull()
     .references(() => creatorProfiles.id, { onDelete: 'cascade' }),
   platform: platformEnum('platform').notNull(),
@@ -213,12 +249,14 @@ export const featuredContent = pgTable('featured_content', {
   title: text('title').notNull(),
   thumbnailUrl: varchar('thumbnail_url', { length: 2048 }),
   publishedAt: timestamp('published_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
 export const events = pgTable(
   'events',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
     slug: varchar('slug', { length: 128 }).notNull().unique(),
     name: varchar('name', { length: 255 }).notNull(),
     kind: eventKindEnum('kind').notNull(),
@@ -227,10 +265,9 @@ export const events = pgTable(
     locationName: varchar('location_name', { length: 255 }),
     lat: real('lat'),
     lng: real('lng'),
-    regionId: uuid('region_id').references(() => regions.id),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    regionId: bigint('region_id', { mode: 'number' }).references(() => regions.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index('events_start_date_idx').on(t.startDate),
@@ -242,14 +279,16 @@ export const events = pgTable(
 export const appearances = pgTable(
   'appearances',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
-    creatorId: uuid('creator_id')
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    creatorId: bigint('creator_id', { mode: 'number' })
       .notNull()
       .references(() => creatorProfiles.id, { onDelete: 'cascade' }),
-    eventId: uuid('event_id')
+    eventId: bigint('event_id', { mode: 'number' })
       .notNull()
       .references(() => events.id, { onDelete: 'cascade' }),
     role: appearanceRoleEnum('role').notNull().default('attendee'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index('appearances_creator_idx').on(t.creatorId),
@@ -258,45 +297,46 @@ export const appearances = pgTable(
 )
 
 export const stores = pgTable('stores', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').references(() => users.id),
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  userId: bigint('user_id', { mode: 'number' }).references(() => users.id),
   slug: varchar('slug', { length: 128 }).notNull().unique(),
   name: varchar('name', { length: 255 }).notNull(),
   address: text('address'),
-  regionId: uuid('region_id').references(() => regions.id),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  website: varchar('website', { length: 2048 }),
+  regionId: bigint('region_id', { mode: 'number' }).references(() => regions.id),
+  verified: boolean('verified').notNull().default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
 // Phase 4+ — scaffolded, not wired to any UI yet
 export const bookings = pgTable('bookings', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  creatorId: uuid('creator_id')
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  creatorId: bigint('creator_id', { mode: 'number' })
     .notNull()
     .references(() => creatorProfiles.id),
-  storeId: uuid('store_id').references(() => stores.id),
-  eventId: uuid('event_id').references(() => events.id),
+  storeId: bigint('store_id', { mode: 'number' }).references(() => stores.id),
+  eventId: bigint('event_id', { mode: 'number' }).references(() => events.id),
   status: bookingStatusEnum('status').notNull().default('pending'),
   feeCents: integer('fee_cents').notNull().default(0),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
 // Phase 4+ — scaffolded, not wired to any UI yet
 export const subscriptions = pgTable('subscriptions', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id')
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  userId: bigint('user_id', { mode: 'number' })
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   plan: subscriptionPlanEnum('plan').notNull().default('free'),
   cycle: subscriptionCycleEnum('cycle'),
   stripeSubscriptionId: varchar('stripe_subscription_id', { length: 255 }),
+  stripeCustomerId: varchar('stripe_customer_id', { length: 255 }),
   expiresAt: timestamp('expires_at', { withTimezone: true }),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
 // ── Relations ─────────────────────────────────────────────────────────────
@@ -322,39 +362,44 @@ export const regionsRelations = relations(regions, ({ many }) => ({
   stores: many(stores),
 }))
 
-export const creatorProfilesRelations = relations(
-  creatorProfiles,
-  ({ one, many }) => ({
-    user: one(users, {
-      fields: [creatorProfiles.userId],
-      references: [users.id],
-    }),
-    region: one(regions, {
-      fields: [creatorProfiles.regionId],
-      references: [regions.id],
-    }),
-    socialAccounts: many(socialAccounts),
-    formats: many(creatorFormats),
-    contentTags: many(creatorContentTags),
-    featuredContent: many(featuredContent),
-    appearances: many(appearances),
-    bookings: many(bookings),
-  })
-)
-
-export const socialAccountsRelations = relations(socialAccounts, ({ one }) => ({
-  creator: one(creatorProfiles, {
-    fields: [socialAccounts.creatorId],
-    references: [creatorProfiles.id],
-  }),
-}))
-
 export const formatTagsRelations = relations(formatTags, ({ many }) => ({
   creators: many(creatorFormats),
 }))
 
 export const contentTagsRelations = relations(contentTags, ({ many }) => ({
   creators: many(creatorContentTags),
+}))
+
+export const creatorProfilesRelations = relations(creatorProfiles, ({ one, many }) => ({
+  user: one(users, {
+    fields: [creatorProfiles.userId],
+    references: [users.id],
+  }),
+  region: one(regions, {
+    fields: [creatorProfiles.regionId],
+    references: [regions.id],
+  }),
+  primaryFormat: one(formatTags, {
+    fields: [creatorProfiles.primaryFormatId],
+    references: [formatTags.id],
+  }),
+  primaryContentTag: one(contentTags, {
+    fields: [creatorProfiles.primaryContentTagId],
+    references: [contentTags.id],
+  }),
+  socialAccounts: many(socialAccounts),
+  formats: many(creatorFormats),
+  contentTags: many(creatorContentTags),
+  featuredContent: many(featuredContent),
+  appearances: many(appearances),
+  bookings: many(bookings),
+}))
+
+export const socialAccountsRelations = relations(socialAccounts, ({ one }) => ({
+  creator: one(creatorProfiles, {
+    fields: [socialAccounts.creatorId],
+    references: [creatorProfiles.id],
+  }),
 }))
 
 export const creatorFormatsRelations = relations(creatorFormats, ({ one }) => ({
@@ -368,29 +413,23 @@ export const creatorFormatsRelations = relations(creatorFormats, ({ one }) => ({
   }),
 }))
 
-export const creatorContentTagsRelations = relations(
-  creatorContentTags,
-  ({ one }) => ({
-    creator: one(creatorProfiles, {
-      fields: [creatorContentTags.creatorId],
-      references: [creatorProfiles.id],
-    }),
-    tag: one(contentTags, {
-      fields: [creatorContentTags.tagId],
-      references: [contentTags.id],
-    }),
-  })
-)
+export const creatorContentTagsRelations = relations(creatorContentTags, ({ one }) => ({
+  creator: one(creatorProfiles, {
+    fields: [creatorContentTags.creatorId],
+    references: [creatorProfiles.id],
+  }),
+  tag: one(contentTags, {
+    fields: [creatorContentTags.tagId],
+    references: [contentTags.id],
+  }),
+}))
 
-export const featuredContentRelations = relations(
-  featuredContent,
-  ({ one }) => ({
-    creator: one(creatorProfiles, {
-      fields: [featuredContent.creatorId],
-      references: [creatorProfiles.id],
-    }),
-  })
-)
+export const featuredContentRelations = relations(featuredContent, ({ one }) => ({
+  creator: one(creatorProfiles, {
+    fields: [featuredContent.creatorId],
+    references: [creatorProfiles.id],
+  }),
+}))
 
 export const eventsRelations = relations(events, ({ one, many }) => ({
   region: one(regions, {
