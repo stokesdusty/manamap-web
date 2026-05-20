@@ -12,6 +12,7 @@ import {
   timestamp,
   date,
   index,
+  uniqueIndex,
   primaryKey,
   customType,
 } from 'drizzle-orm/pg-core'
@@ -216,9 +217,31 @@ export const socialAccounts = pgTable('social_accounts', {
   url: varchar('url', { length: 2048 }).notNull(),
   followers: integer('followers').notNull().default(0),
   syncedAt: timestamp('synced_at', { withTimezone: true }),
+  lastSyncError: text('last_sync_error'),
+  lastSyncErrorAt: timestamp('last_sync_error_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
+
+// Cache for external platform API responses. Key: (platform, handle, payloadKind).
+// TTL is enforced by expiresAt — stale rows are ignored, not deleted.
+export const platformCache = pgTable(
+  'platform_cache',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    platform: platformEnum('platform').notNull(),
+    handle: varchar('handle', { length: 255 }).notNull(),
+    payloadKind: varchar('payload_kind', { length: 64 }).notNull(),
+    payload: jsonb('payload').notNull(),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    error: text('error'),
+  },
+  (t) => [
+    uniqueIndex('platform_cache_uniq_idx').on(t.platform, t.handle, t.payloadKind),
+    index('platform_cache_expires_idx').on(t.expiresAt),
+  ]
+)
 
 // Junction: creator ↔ format (many-to-many)
 export const creatorFormats = pgTable(

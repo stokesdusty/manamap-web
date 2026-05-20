@@ -4,7 +4,9 @@ import { useState, useTransition } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { platformsSchema, PLATFORM_LABELS, type PlatformsFormValues } from '@/lib/validators/platforms'
+import { formatCount } from '@/lib/format'
 import { savePlatforms } from '../actions'
+import type { SyncResult } from '@/lib/external/sync'
 
 interface PlatformsFormProps {
   initial: PlatformsFormValues
@@ -15,9 +17,12 @@ const PLATFORM_ORDER = [
   'instagram', 'patreon', 'moxfield', 'archidekt', 'podcast',
 ] as const
 
+const SYNCED_PLATFORMS = new Set(['youtube', 'twitch'])
+
 export function PlatformsForm({ initial }: PlatformsFormProps) {
   const [saved, setSaved] = useState(false)
   const [rootError, setRootError] = useState<string | null>(null)
+  const [synced, setSynced] = useState<SyncResult[]>([])
   const [pending, startTransition] = useTransition()
 
   const { register, handleSubmit, formState: { errors } } = useForm<PlatformsFormValues>({
@@ -29,12 +34,14 @@ export function PlatformsForm({ initial }: PlatformsFormProps) {
   const onSubmit = handleSubmit((data) => {
     setSaved(false)
     setRootError(null)
+    setSynced([])
     startTransition(async () => {
       const result = await savePlatforms(data)
       if (!result.ok) {
         if (result.errors.root) setRootError(result.errors.root[0] ?? null)
       } else {
         setSaved(true)
+        setSynced(result.synced)
       }
     })
   })
@@ -51,6 +58,10 @@ export function PlatformsForm({ initial }: PlatformsFormProps) {
         {PLATFORM_ORDER.map((platform, i) => {
           const err = errors[platform]?.message
           const isLast = i === PLATFORM_ORDER.length - 1
+          const syncResult = SYNCED_PLATFORMS.has(platform)
+            ? synced.find((s) => s.platform === platform)
+            : undefined
+
           return (
             <div
               key={platform}
@@ -88,6 +99,20 @@ export function PlatformsForm({ initial }: PlatformsFormProps) {
                 {err && (
                   <p style={{ fontSize: 12, color: 'var(--r)', margin: '4px 0 0' }}>{err}</p>
                 )}
+                {syncResult && (
+                  <p
+                    style={{
+                      fontSize: 12,
+                      color: syncResult.ok ? 'var(--ink-3)' : 'var(--r)',
+                      margin: '4px 0 0',
+                      fontFamily: 'var(--font-mono)',
+                    }}
+                  >
+                    {syncResult.ok
+                      ? `${formatCount(syncResult.followers)} subscribers`
+                      : (syncResult.error ?? 'Sync failed')}
+                  </p>
+                )}
               </div>
             </div>
           )
@@ -105,7 +130,7 @@ export function PlatformsForm({ initial }: PlatformsFormProps) {
         {rootError && <p style={{ fontSize: 13, color: 'var(--r)', margin: 0 }}>{rootError}</p>}
         {saved && !rootError && (
           <p style={{ color: 'var(--g)', margin: 0, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: 11 }}>
-            Saved ✓
+            Saved
           </p>
         )}
         {!rootError && !saved && <span />}

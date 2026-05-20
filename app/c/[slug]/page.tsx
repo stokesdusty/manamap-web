@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getCreatorBySlug, getSimilarCreators } from '@/lib/creators'
 import { formatCount, formatShortDate, PLATFORM_LABEL } from '@/lib/format'
+import { fetchChannel as fetchYouTubeChannel, fetchLatestVideos } from '@/lib/external/youtube'
+import { fetchChannel as fetchTwitchChannel, fetchLiveStatus } from '@/lib/external/twitch'
 import { Eyebrow } from '@/components/ui/Eyebrow'
 import { Chip } from '@/components/ui/Chip'
 import { Button } from '@/components/ui/Button'
@@ -9,11 +11,12 @@ import { Pip } from '@/components/ui/Pip'
 import { Hairline } from '@/components/ui/Hairline'
 import { ProfileTabs } from './_components/ProfileTabs'
 import { ProfileViewCapture } from './_components/ProfileViewCapture'
-import type { AppearanceItem, FeaturedItem } from './_components/ProfileTabs'
+import type { AppearanceItem, FeaturedItem, YouTubeVideoItem } from './_components/ProfileTabs'
 
 // ── Cache / revalidation ──────────────────────────────────────────────────────
 
-export const revalidate = 3600
+// 60s so Twitch live status is at most 60s stale (matches the platformCache TTL).
+export const revalidate = 60
 
 // ── Metadata ──────────────────────────────────────────────────────────────────
 
@@ -58,6 +61,23 @@ export default async function CreatorProfilePage({ params }: Props) {
 
   const similar = await getSimilarCreators(creator.id, creator.primaryFormatId)
 
+  // ── External platform data (cached in platformCache, never 500 on failure) ──
+
+  const ytAccount = creator.socialAccounts.find((a) => a.platform === 'youtube')
+  const twAccount = creator.socialAccounts.find((a) => a.platform === 'twitch')
+
+  const [ytChannel, twChannel] = await Promise.all([
+    ytAccount ? fetchYouTubeChannel(ytAccount.handle) : null,
+    twAccount ? fetchTwitchChannel(twAccount.handle) : null,
+  ])
+
+  const [youtubeVideos, twitchLive] = await Promise.all([
+    ytChannel ? fetchLatestVideos(ytChannel.channelId, 6) : Promise.resolve([]),
+    twChannel ? fetchLiveStatus(twChannel.broadcasterId) : Promise.resolve(null),
+  ])
+
+  const isLive = twitchLive?.isLive ?? false
+
   // ── Derived data ──────────────────────────────────────────────────────────
 
   const today = new Date().toISOString().slice(0, 10)
@@ -80,7 +100,17 @@ export default async function CreatorProfilePage({ params }: Props) {
     id: fc.id,
     platform: fc.platform,
     title: fc.title,
+    url: fc.url ?? null,
+    thumbnailUrl: fc.thumbnailUrl ?? null,
     publishedAt: fc.publishedAt?.toISOString() ?? null,
+  }))
+
+  const ytVideos: YouTubeVideoItem[] = youtubeVideos.map((v) => ({
+    videoId: v.videoId,
+    title: v.title,
+    thumbnailUrl: v.thumbnailUrl,
+    publishedAt: v.publishedAt,
+    url: v.url,
   }))
 
   const primaryFormatName = creator.primaryFormat?.name ?? null
@@ -245,6 +275,7 @@ export default async function CreatorProfilePage({ params }: Props) {
         {/* Left: tabbed content */}
         <ProfileTabs
           featuredContent={featuredContent}
+          youtubeVideos={ytVideos}
           appearances={upcomingAppearances}
           bio={creator.bio ?? ''}
           formatLabels={creator.formats.map((f) => f.format.name)}
@@ -265,7 +296,10 @@ export default async function CreatorProfilePage({ params }: Props) {
                   rel="noopener noreferrer"
                   style={railLinkStyle}
                 >
-                  <span>{PLATFORM_LABEL[p.platform] ?? p.platform}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {PLATFORM_LABEL[p.platform] ?? p.platform}
+                    {p.platform === 'twitch' && isLive && <LiveBadge />}
+                  </span>
                   <strong style={railStrongStyle}>{formatCount(p.followers)}</strong>
                 </a>
               ))}
@@ -333,7 +367,7 @@ const railGroupHeadingStyle: React.CSSProperties = {
 const railLinkStyle: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
-  alignItems: 'baseline',
+  alignItems: 'center',
   fontFamily: 'var(--font-mono)',
   fontSize: 11,
   color: 'var(--ink-3)',
@@ -347,6 +381,27 @@ const railStrongStyle: React.CSSProperties = {
   color: 'var(--ink)',
   fontWeight: 500,
   flexShrink: 0,
+}
+
+function LiveBadge() {
+  return (
+    <span
+      style={{
+        fontFamily: 'var(--font-mono)',
+        fontSize: 9,
+        textTransform: 'uppercase',
+        letterSpacing: '0.08em',
+        background: 'var(--r)',
+        color: '#fff',
+        padding: '1px 5px',
+        borderRadius: 3,
+        fontWeight: 600,
+        lineHeight: 1.6,
+      }}
+    >
+      Live
+    </span>
+  )
 }
 
 function SideGroup({

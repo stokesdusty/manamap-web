@@ -10,7 +10,17 @@ export interface FeaturedItem {
   id: number
   platform: string
   title: string
+  url: string | null
+  thumbnailUrl: string | null
   publishedAt: string | null
+}
+
+export interface YouTubeVideoItem {
+  videoId: string
+  title: string
+  thumbnailUrl: string
+  publishedAt: string
+  url: string
 }
 
 export interface AppearanceItem {
@@ -25,6 +35,7 @@ export interface AppearanceItem {
 
 interface ProfileTabsProps {
   featuredContent: FeaturedItem[]
+  youtubeVideos: YouTubeVideoItem[]
   appearances: AppearanceItem[]
   bio: string
   formatLabels: string[]
@@ -46,12 +57,15 @@ const TABS: { id: TabId; label: string }[] = [
 
 export function ProfileTabs({
   featuredContent,
+  youtubeVideos,
   appearances,
   bio,
   formatLabels,
   tagLabels,
 }: ProfileTabsProps) {
   const [active, setActive] = useState<TabId>('content')
+
+  const hasContent = youtubeVideos.length > 0 || featuredContent.length > 0
 
   return (
     <div>
@@ -90,8 +104,15 @@ export function ProfileTabs({
       {/* ── Content ── */}
       {active === 'content' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          {featuredContent.length > 0 ? (
-            featuredContent.map((item) => <ContentTile key={item.id} item={item} />)
+          {hasContent ? (
+            <>
+              {youtubeVideos.map((v) => (
+                <YouTubeVideoTile key={v.videoId} video={v} />
+              ))}
+              {featuredContent.map((item) => (
+                <ContentTile key={item.id} item={item} />
+              ))}
+            </>
           ) : (
             <EmptyState>No content linked yet.</EmptyState>
           )}
@@ -146,11 +167,94 @@ export function ProfileTabs({
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
+function YouTubeVideoTile({ video }: { video: YouTubeVideoItem }) {
+  const dateStr = formatRelativeDate(video.publishedAt)
+
+  return (
+    <a
+      href={video.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--hairline)',
+        borderRadius: 8,
+        overflow: 'hidden',
+        textDecoration: 'none',
+        display: 'block',
+      }}
+    >
+      {/* Thumbnail */}
+      <div
+        style={{
+          aspectRatio: '16/9',
+          background: 'linear-gradient(135deg, var(--paper-soft) 0%, var(--paper) 100%)',
+          position: 'relative',
+          borderBottom: '1px solid var(--hairline)',
+          overflow: 'hidden',
+        }}
+      >
+        {video.thumbnailUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={video.thumbnailUrl}
+            alt=""
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        )}
+        <span
+          style={{
+            position: 'absolute',
+            top: 8,
+            left: 8,
+            fontFamily: 'var(--font-mono)',
+            fontSize: 9,
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            background: 'var(--surface)',
+            color: 'var(--ink-3)',
+            padding: '2px 6px',
+            borderRadius: 3,
+          }}
+        >
+          YouTube
+        </span>
+      </div>
+
+      {/* Meta */}
+      <div style={{ padding: '10px 12px' }}>
+        <p
+          style={{
+            fontSize: 13,
+            lineHeight: 1.35,
+            color: 'var(--ink)',
+            margin: '0 0 4px',
+          }}
+        >
+          {video.title}
+        </p>
+        <p
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 10,
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            color: 'var(--ink-4)',
+            margin: 0,
+          }}
+        >
+          {dateStr}
+        </p>
+      </div>
+    </a>
+  )
+}
+
 function ContentTile({ item }: { item: FeaturedItem }) {
   const label = PLATFORM_LABEL[item.platform] ?? item.platform
   const dateStr = item.publishedAt ? formatRelativeDate(item.publishedAt) : ''
 
-  return (
+  const inner = (
     <div
       style={{
         background: 'var(--surface)',
@@ -166,8 +270,17 @@ function ContentTile({ item }: { item: FeaturedItem }) {
           background: 'linear-gradient(135deg, var(--paper-soft) 0%, var(--paper) 100%)',
           position: 'relative',
           borderBottom: '1px solid var(--hairline)',
+          overflow: 'hidden',
         }}
       >
+        {item.thumbnailUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={item.thumbnailUrl}
+            alt=""
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        )}
         <span
           style={{
             position: 'absolute',
@@ -213,6 +326,14 @@ function ContentTile({ item }: { item: FeaturedItem }) {
         </p>
       </div>
     </div>
+  )
+
+  return item.url ? (
+    <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textDecoration: 'none' }}>
+      {inner}
+    </a>
+  ) : (
+    inner
   )
 }
 
