@@ -65,14 +65,8 @@ export function PlatformsForm({ initial }: PlatformsFormProps) {
           return (
             <div
               key={platform}
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '160px 1fr',
-                gap: 16,
-                padding: '14px 22px',
-                borderBottom: isLast ? 'none' : '1px solid var(--hairline)',
-                alignItems: 'start',
-              }}
+              className="dash-form-row"
+              style={{ borderBottom: isLast ? 'none' : '1px solid var(--hairline)' }}
             >
               <label
                 htmlFor={`platform-${platform}`}

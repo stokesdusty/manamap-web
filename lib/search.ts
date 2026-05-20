@@ -1,4 +1,4 @@
-import { and, count, desc, eq, inArray, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm'
 import type { SQL } from 'drizzle-orm'
 import { db } from '@/db'
 import {
@@ -57,19 +57,17 @@ export interface AllFacets {
   colors: FacetOption[]
 }
 
-// ── WHERE clause builder ──────────────────────────────────────────────────────
+export interface EmptyStateSuggestion {
+  label: string
+  count: number
+  href: string
+}
 
-function buildConditions(f: SearchFilters): SQL[] {
+// ── WHERE clause builders ──────────────────────────────────────────────────────
+
+// Non-q conditions only — used by searchCreators (q is handled separately there)
+function buildBaseConditions(f: SearchFilters): SQL[] {
   const conds: SQL[] = []
-
-  if (f.q) {
-    // FTS with ILIKE fallback for rows where trigger hasn't populated search_vector
-    conds.push(sql`(
-      ${creatorProfiles.searchVector} @@ websearch_to_tsquery('english', ${f.q})
-      OR ${creatorProfiles.displayName} ILIKE ${'%' + f.q + '%'}
-      OR ${creatorProfiles.bio} ILIKE ${'%' + f.q + '%'}
-    )`)
-  }
 
   if (f.formats.length > 0) {
     conds.push(sql`EXISTS (
@@ -101,7 +99,6 @@ function buildConditions(f: SearchFilters): SQL[] {
   }
 
   if (f.colors.length > 0) {
-    // jsonb_array_elements_text avoids the ?| operator which some drivers escape
     conds.push(sql`EXISTS (
       SELECT 1 FROM creator_formats cf
       INNER JOIN format_tags ft ON cf.format_id = ft.id
@@ -120,9 +117,41 @@ function buildConditions(f: SearchFilters): SQL[] {
   return conds
 }
 
-function toWhere(f: SearchFilters): SQL | undefined {
-  const conds = buildConditions(f)
+// Used by facet counts: combines FTS and similarity with OR so counts stay accurate
+// even when the user has a partial/typo query. No exclusive fallback needed here.
+function toFacetWhere(f: SearchFilters): SQL | undefined {
+  const conds = buildBaseConditions(f)
+  if (f.q) {
+    conds.push(sql`(
+      ${creatorProfiles.searchVector} @@ websearch_to_tsquery('english', ${f.q})
+      OR similarity(${creatorProfiles.displayName}, ${f.q}) > 0.3
+    )`)
+  }
   return conds.length > 0 ? and(...conds) : undefined
+}
+
+// ── Count-only helper (used by getEmptyStateSuggestions) ─────────────────────
+
+async function countCreators(f: SearchFilters): Promise<number> {
+  const baseConds = buildBaseConditions(f)
+  const baseWhere = baseConds.length > 0 ? and(...baseConds) : undefined
+
+  if (f.q) {
+    const ftsWhere = baseWhere
+      ? and(baseWhere, sql`${creatorProfiles.searchVector} @@ websearch_to_tsquery('english', ${f.q})`)
+      : sql`${creatorProfiles.searchVector} @@ websearch_to_tsquery('english', ${f.q})`
+    const [{ n }] = await db.select({ n: count() }).from(creatorProfiles).where(ftsWhere)
+    if (Number(n) > 0) return Number(n)
+
+    const trgmWhere = baseWhere
+      ? and(baseWhere, sql`similarity(${creatorProfiles.displayName}, ${f.q}) > 0.3`)
+      : sql`similarity(${creatorProfiles.displayName}, ${f.q}) > 0.3`
+    const [{ n: t }] = await db.select({ n: count() }).from(creatorProfiles).where(trgmWhere)
+    return Number(t)
+  }
+
+  const [{ n }] = await db.select({ n: count() }).from(creatorProfiles).where(baseWhere)
+  return Number(n)
 }
 
 // ── Main search ───────────────────────────────────────────────────────────────
@@ -130,20 +159,67 @@ function toWhere(f: SearchFilters): SQL | undefined {
 export async function searchCreators(
   filters: SearchFilters
 ): Promise<{ rows: SearchRow[]; total: number }> {
-  const where = toWhere(filters)
+  const baseConds = buildBaseConditions(filters)
+  const baseWhere = baseConds.length > 0 ? and(...baseConds) : undefined
 
-  const [{ total }] = await db
-    .select({ total: count() })
-    .from(creatorProfiles)
-    .where(where)
+  type WhereMode = 'fts' | 'trgm' | 'base'
+  let whereMode: WhereMode = 'base'
+  let effectiveWhere: SQL | undefined = baseWhere
+  let total: number | undefined
+
+  if (filters.q) {
+    const ftsWhere = baseWhere
+      ? and(baseWhere, sql`${creatorProfiles.searchVector} @@ websearch_to_tsquery('english', ${filters.q})`)
+      : sql`${creatorProfiles.searchVector} @@ websearch_to_tsquery('english', ${filters.q})`
+
+    const [{ n }] = await db.select({ n: count() }).from(creatorProfiles).where(ftsWhere)
+
+    if (Number(n) > 0) {
+      effectiveWhere = ftsWhere
+      whereMode = 'fts'
+      total = Number(n) // avoid a second count query
+    } else {
+      // Trigram fallback: catches typos and prefix matches
+      const trgmWhere = baseWhere
+        ? and(baseWhere, sql`similarity(${creatorProfiles.displayName}, ${filters.q}) > 0.3`)
+        : sql`similarity(${creatorProfiles.displayName}, ${filters.q}) > 0.3`
+      effectiveWhere = trgmWhere
+      whereMode = 'trgm'
+    }
+  }
+
+  if (total === undefined) {
+    const [{ n }] = await db.select({ n: count() }).from(creatorProfiles).where(effectiveWhere)
+    total = Number(n)
+  }
 
   if (total === 0) return { rows: [], total: 0 }
 
-  const idRows = await db
-    .select({ id: creatorProfiles.id })
-    .from(creatorProfiles)
-    .where(where)
-    .orderBy(desc(creatorProfiles.followersTotal))
+  // Build the paginated ID query with the correct sort
+  const buildIdQuery = () => {
+    const base = db
+      .select({ id: creatorProfiles.id })
+      .from(creatorProfiles)
+      .where(effectiveWhere)
+
+    if (whereMode === 'fts') {
+      return base.orderBy(
+        sql`ts_rank(${creatorProfiles.searchVector}, websearch_to_tsquery('english', ${filters.q})) DESC`,
+        desc(creatorProfiles.followersTotal),
+        asc(creatorProfiles.displayName)
+      )
+    }
+    if (whereMode === 'trgm') {
+      return base.orderBy(
+        sql`similarity(${creatorProfiles.displayName}, ${filters.q}) DESC`,
+        desc(creatorProfiles.followersTotal),
+        asc(creatorProfiles.displayName)
+      )
+    }
+    return base.orderBy(desc(creatorProfiles.followersTotal), asc(creatorProfiles.displayName))
+  }
+
+  const idRows = await buildIdQuery()
     .limit(PAGE_SIZE)
     .offset((filters.page - 1) * PAGE_SIZE)
 
@@ -177,9 +253,7 @@ export async function searchCreators(
         handle: p.handle ?? null,
         regionName: p.region?.name ?? null,
         primaryFormatName: p.primaryFormat?.name ?? null,
-        primaryFormatColors: (p.primaryFormat?.colors ?? []) as Array<
-          'w' | 'u' | 'b' | 'r' | 'g'
-        >,
+        primaryFormatColors: (p.primaryFormat?.colors ?? []) as Array<'w' | 'u' | 'b' | 'r' | 'g'>,
         topPlatform: top?.platform ?? null,
         topFollowers: top?.followers ?? 0,
         tagLabels: p.contentTags.map((ct) => ct.tag.label),
@@ -207,7 +281,7 @@ export async function getFacetCounts(filters: SearchFilters): Promise<AllFacets>
       .from(creatorFormats)
       .innerJoin(formatTags, eq(creatorFormats.formatId, formatTags.id))
       .innerJoin(creatorProfiles, eq(creatorFormats.creatorId, creatorProfiles.id))
-      .where(toWhere({ ...filters, formats: [] }))
+      .where(toFacetWhere({ ...filters, formats: [] }))
       .groupBy(sql`${formatTags.code}::text`, formatTags.name),
 
     // Style/theme tags — exclude tags dimension
@@ -217,7 +291,7 @@ export async function getFacetCounts(filters: SearchFilters): Promise<AllFacets>
       .innerJoin(contentTags, eq(creatorContentTags.tagId, contentTags.id))
       .innerJoin(creatorProfiles, eq(creatorContentTags.creatorId, creatorProfiles.id))
       .where(
-        and(toWhere({ ...filters, tags: [] }), sql`${contentTags.kind} IN ('style', 'theme')`)
+        and(toFacetWhere({ ...filters, tags: [] }), sql`${contentTags.kind} IN ('style', 'theme')`)
       )
       .groupBy(contentTags.code, contentTags.label),
 
@@ -228,7 +302,7 @@ export async function getFacetCounts(filters: SearchFilters): Promise<AllFacets>
       .innerJoin(contentTags, eq(creatorContentTags.tagId, contentTags.id))
       .innerJoin(creatorProfiles, eq(creatorContentTags.creatorId, creatorProfiles.id))
       .where(
-        and(toWhere({ ...filters, audience: [] }), sql`${contentTags.kind} = 'audience'`)
+        and(toFacetWhere({ ...filters, audience: [] }), sql`${contentTags.kind} = 'audience'`)
       )
       .groupBy(contentTags.code, contentTags.label),
 
@@ -237,12 +311,12 @@ export async function getFacetCounts(filters: SearchFilters): Promise<AllFacets>
       .select({ code: regions.code, label: regions.name, n: count() })
       .from(creatorProfiles)
       .innerJoin(regions, eq(creatorProfiles.regionId, regions.id))
-      .where(toWhere({ ...filters, region: '' }))
+      .where(toFacetWhere({ ...filters, region: '' }))
       .groupBy(regions.code, regions.name),
 
-    // Colors — 5 separate counts (one per pip), exclude colors dimension
+    // Colors — 5 separate counts, exclude colors dimension
     ...(['w', 'u', 'b', 'r', 'g'] as const).map(async (color) => {
-      const baseWhere = toWhere({ ...filters, colors: [] })
+      const baseWhere = toFacetWhere({ ...filters, colors: [] })
       const colorExists = sql`EXISTS (
         SELECT 1 FROM creator_formats cf
         INNER JOIN format_tags ft ON cf.format_id = ft.id
@@ -277,6 +351,57 @@ export async function getFacetCounts(filters: SearchFilters): Promise<AllFacets>
       (a, b) => COLOR_ORDER.indexOf(a.code) - COLOR_ORDER.indexOf(b.code)
     ),
   }
+}
+
+// ── Empty-state suggestions ───────────────────────────────────────────────────
+
+// When a search returns 0 results, compute how many results each individual
+// filter removal would unlock. Run in parallel; return sorted by count DESC.
+export async function getEmptyStateSuggestions(
+  filters: SearchFilters
+): Promise<EmptyStateSuggestion[]> {
+  const candidates: Array<{ label: string; modified: SearchFilters }> = []
+
+  if (filters.formats.length > 0)
+    candidates.push({
+      label: filters.formats.join(' + '),
+      modified: { ...filters, formats: [], page: 1 },
+    })
+  if (filters.tags.length > 0)
+    candidates.push({
+      label: filters.tags.join(' + '),
+      modified: { ...filters, tags: [], page: 1 },
+    })
+  if (filters.audience.length > 0)
+    candidates.push({
+      label: filters.audience.join(' + '),
+      modified: { ...filters, audience: [], page: 1 },
+    })
+  if (filters.colors.length > 0)
+    candidates.push({
+      label: filters.colors.map((c) => c.toUpperCase()).join(' + '),
+      modified: { ...filters, colors: [], page: 1 },
+    })
+  if (filters.region)
+    candidates.push({
+      label: filters.region.toUpperCase(),
+      modified: { ...filters, region: '', page: 1 },
+    })
+
+  if (candidates.length === 0) return []
+
+  const results = await Promise.all(
+    candidates.map(async ({ label, modified }) => {
+      const n = await countCreators(modified)
+      return n > 0
+        ? ({ label, count: n, href: buildSearchUrl(modified) } satisfies EmptyStateSuggestion)
+        : null
+    })
+  )
+
+  return results
+    .filter((r): r is EmptyStateSuggestion => r !== null)
+    .sort((a, b) => b.count - a.count)
 }
 
 // ── URL builder helpers (used server-side in sidebar) ─────────────────────────

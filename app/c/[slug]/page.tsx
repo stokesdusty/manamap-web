@@ -130,11 +130,14 @@ export default async function CreatorProfilePage({ params }: Props) {
         style={{
           background: 'var(--surface)',
           borderBottom: '1px solid var(--hairline)',
-          padding: '28px 32px',
         }}
+        className="px-5 py-5 md:px-8 md:py-7"
       >
         {/* Identity row */}
-        <div style={{ display: 'flex', gap: 22, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+        <div
+          className="profile-identity-row"
+          style={{ display: 'flex', gap: 22, alignItems: 'flex-end', flexWrap: 'wrap' }}
+        >
 
           {/* Avatar with dashed ring decoration */}
           <div style={{ position: 'relative', flexShrink: 0, width: 92, height: 92 }}>
@@ -262,16 +265,7 @@ export default async function CreatorProfilePage({ params }: Props) {
       </div>
 
       {/* ── Profile body ──────────────────────────────────────────────────── */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 280px',
-          gap: 28,
-          maxWidth: 1100,
-          margin: '0 auto',
-          padding: '24px 32px',
-        }}
-      >
+      <div className="profile-body">
         {/* Left: tabbed content */}
         <ProfileTabs
           featuredContent={featuredContent}

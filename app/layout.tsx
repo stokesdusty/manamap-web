@@ -1,6 +1,7 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Newsreader, Geist, Geist_Mono } from 'next/font/google'
 import { ClerkProvider } from '@clerk/nextjs'
+import { MobileTabBar } from '@/components/nav/MobileTabBar'
 import './globals.css'
 
 const newsreader = Newsreader({
@@ -21,6 +22,11 @@ const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   display: 'swap',
 })
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+}
 
 export const metadata: Metadata = {
   title: {
@@ -45,6 +51,7 @@ export default function RootLayout({
       >
         <body className="min-h-full flex flex-col bg-paper text-ink antialiased">
           {children}
+          <MobileTabBar />
         </body>
       </html>
     </ClerkProvider>

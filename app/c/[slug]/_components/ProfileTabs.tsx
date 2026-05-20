@@ -69,8 +69,9 @@ export function ProfileTabs({
 
   return (
     <div>
-      {/* Tab bar — matches .tabs pattern from styles.css */}
+      {/* Tab bar — sticky + horizontal scroll on mobile */}
       <div
+        className="profile-tabs-bar"
         style={{
           display: 'flex',
           gap: 24,
@@ -83,7 +84,7 @@ export function ProfileTabs({
             key={id}
             onClick={() => setActive(id)}
             style={{
-              padding: '8px 0',
+              padding: '12px 4px',
               marginBottom: -1,
               background: 'transparent',
               border: 'none',
@@ -94,6 +95,9 @@ export function ProfileTabs({
               fontSize: 11,
               textTransform: 'uppercase' as const,
               letterSpacing: '0.08em',
+              minHeight: 44,
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
             }}
           >
             {label}
@@ -103,7 +107,7 @@ export function ProfileTabs({
 
       {/* ── Content ── */}
       {active === 'content' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <div className="rg-2col" style={{ gap: 14 }}>
           {hasContent ? (
             <>
               {youtubeVideos.map((v) => (

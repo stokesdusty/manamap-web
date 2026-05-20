@@ -96,12 +96,8 @@ export default async function DashboardProfilePage() {
       </p>
 
       <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: 12,
-          marginBottom: 24,
-        }}
+        className="grid grid-cols-2 md:grid-cols-4"
+        style={{ gap: 12, marginBottom: 24 }}
       >
         {STATS.map(({ n, label, delta, real }) => (
           <div

@@ -299,7 +299,7 @@ function SortableItem({
 
 function FieldRow({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: 12, alignItems: 'start' }}>
+    <div className="dash-form-row" style={{ borderBottom: 'none' }}>
       <span
         style={{
           fontFamily: 'var(--font-mono)',

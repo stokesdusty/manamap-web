@@ -37,14 +37,7 @@ export function AccountForm({ email }: AccountFormProps) {
           borderRadius: 8,
         }}
       >
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '160px 1fr',
-            gap: 16,
-            padding: '14px 22px',
-          }}
-        >
+        <div className="dash-form-row">
           <span
             style={{
               fontFamily: 'var(--font-mono)',

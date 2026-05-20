@@ -4,12 +4,15 @@ import { Chip } from '@/components/ui/Chip'
 import { Pip } from '@/components/ui/Pip'
 import { Hairline } from '@/components/ui/Hairline'
 import { FacetSidebar } from './_components/FacetSidebar'
+import { FiltersDrawer } from '@/components/search/FiltersDrawer'
 import {
   searchCreators,
   getFacetCounts,
+  getEmptyStateSuggestions,
   buildSearchUrl,
   type SearchFilters,
   type SearchRow,
+  type EmptyStateSuggestion,
   PAGE_SIZE,
 } from '@/lib/search'
 import { PLATFORM_LABEL, formatCount } from '@/lib/format'
@@ -59,12 +62,16 @@ export default async function SearchPage({ searchParams }: Props) {
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
   const hasAnyFilter =
-    filters.q ||
+    !!filters.q ||
     filters.formats.length > 0 ||
     filters.tags.length > 0 ||
     filters.colors.length > 0 ||
     filters.audience.length > 0 ||
-    filters.region
+    !!filters.region
+
+  // Only compute suggestions on empty result paths — parallel with nothing else
+  const suggestions: EmptyStateSuggestion[] =
+    total === 0 && hasAnyFilter ? await getEmptyStateSuggestions(filters) : []
 
   // Active filter label (for the results header)
   const activeLabels = [
@@ -81,9 +88,9 @@ export default async function SearchPage({ searchParams }: Props) {
       <div
         style={{
           borderBottom: '1px solid var(--hairline)',
-          padding: '20px 32px 0',
           background: 'var(--surface)',
         }}
+        className="px-5 pt-5 md:px-8"
       >
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <h1
@@ -110,8 +117,9 @@ export default async function SearchPage({ searchParams }: Props) {
           alignItems: 'flex-start',
         }}
       >
-        {/* Facets */}
+        {/* Facets — desktop only */}
         <div
+          className="hidden md:block"
           style={{
             padding: '20px 24px',
             borderRight: '1px solid var(--hairline)',
@@ -127,7 +135,14 @@ export default async function SearchPage({ searchParams }: Props) {
         </div>
 
         {/* Results */}
-        <div style={{ flex: 1, minWidth: 0, padding: '20px 28px' }}>
+        <div className="px-5 py-5 md:px-7" style={{ flex: 1, minWidth: 0 }}>
+
+          {/* Mobile filter trigger */}
+          <div className="md:hidden" style={{ marginBottom: 16 }}>
+            <FiltersDrawer filterCount={filters.formats.length + filters.tags.length + filters.colors.length + filters.audience.length + (filters.region ? 1 : 0)}>
+              <FacetSidebar filters={filters} facets={facets} />
+            </FiltersDrawer>
+          </div>
 
           {/* Results header */}
           <div
@@ -183,20 +198,9 @@ export default async function SearchPage({ searchParams }: Props) {
 
           <Hairline style={{ marginBottom: 0 }} />
 
-          {/* Result rows */}
+          {/* Result rows or empty state */}
           {rows.length === 0 ? (
-            <p
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 11,
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-                color: 'var(--ink-4)',
-                padding: '48px 0',
-              }}
-            >
-              No creators match these filters.
-            </p>
+            <EmptyState filters={filters} suggestions={suggestions} />
           ) : (
             rows.map((row) => <ResultRow key={row.id} row={row} />)
           )}
@@ -211,26 +215,100 @@ export default async function SearchPage({ searchParams }: Props) {
   )
 }
 
+// ── Empty state ───────────────────────────────────────────────────────────────
+
+function EmptyState({
+  filters,
+  suggestions,
+}: {
+  filters: SearchFilters
+  suggestions: EmptyStateSuggestion[]
+}) {
+  // Build a human-readable description of the active filters
+  const activeFilters = [
+    ...filters.formats,
+    ...filters.tags,
+    ...filters.audience,
+    ...filters.colors.map((c) => c.toUpperCase()),
+    ...(filters.region ? [filters.region.toUpperCase()] : []),
+  ]
+
+  const descParts = filters.q
+    ? [`"${filters.q}"`, ...activeFilters]
+    : activeFilters
+
+  return (
+    <div style={{ padding: '48px 0' }}>
+      <p
+        style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: 11,
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          color: 'var(--ink-4)',
+          margin: '0 0 12px',
+        }}
+      >
+        No matches for {descParts.join(' + ')}
+      </p>
+
+      {suggestions.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <p
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 10,
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              color: 'var(--ink-5)',
+              margin: 0,
+            }}
+          >
+            Try removing:
+          </p>
+          {suggestions.map((s) => (
+            <a
+              key={s.label}
+              href={s.href}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'baseline',
+                gap: 8,
+                fontFamily: 'var(--font-mono)',
+                fontSize: 11,
+                textDecoration: 'none',
+                color: 'var(--ink-2)',
+              }}
+            >
+              <span
+                style={{
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  textDecoration: 'underline',
+                  textUnderlineOffset: 2,
+                }}
+              >
+                {s.label}
+              </span>
+              <span style={{ color: 'var(--ink-4)' }}>
+                ({s.count} result{s.count !== 1 ? 's' : ''})
+              </span>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Result row ────────────────────────────────────────────────────────────────
 
 function ResultRow({ row }: { row: SearchRow }) {
   const platformLabel = row.topPlatform ? (PLATFORM_LABEL[row.topPlatform] ?? row.topPlatform) : null
 
   return (
-    <a
-      href={`/c/${row.slug}`}
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '52px 1fr 96px 72px',
-        gap: 16,
-        alignItems: 'center',
-        padding: '14px 0',
-        borderBottom: '1px solid var(--hairline)',
-        textDecoration: 'none',
-        color: 'inherit',
-      }}
-    >
-      {/* Avatar — circular placeholder with colour-pie decoration */}
+    <a href={`/c/${row.slug}`} className="result-row">
+      {/* Avatar */}
       <div
         style={{
           width: 48,
@@ -238,23 +316,9 @@ function ResultRow({ row }: { row: SearchRow }) {
           borderRadius: '50%',
           background: 'var(--paper-soft)',
           border: '1px solid var(--hairline)',
-          position: 'relative',
           flexShrink: 0,
         }}
-      >
-        {row.primaryFormatColors.length > 0 && (
-          <div
-            aria-hidden="true"
-            style={{
-              position: 'absolute',
-              inset: 4,
-              borderRadius: '50%',
-              background: buildColorPie(row.primaryFormatColors),
-              opacity: 0.2,
-            }}
-          />
-        )}
-      </div>
+      />
 
       {/* Creator info */}
       <div style={{ minWidth: 0 }}>
@@ -271,25 +335,11 @@ function ResultRow({ row }: { row: SearchRow }) {
         >
           {row.displayName}
         </p>
-        <p
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 10,
-            textTransform: 'uppercase',
-            letterSpacing: '0.06em',
-            color: 'var(--ink-3)',
-            margin: '2px 0 6px',
-          }}
-        >
-          {[
-            row.handle ? `@${row.handle}` : null,
-            row.regionName,
-            row.primaryFormatName,
-          ]
-            .filter(Boolean)
-            .join(' · ')}
-        </p>
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+
+        {/* Metadata line: @handle · region · color pips + format */}
+        <MetaLine row={row} />
+
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
           {row.tagLabels.slice(0, 4).map((t) => (
             <Chip key={t}>{t}</Chip>
           ))}
@@ -297,7 +347,7 @@ function ResultRow({ row }: { row: SearchRow }) {
       </div>
 
       {/* Top platform stat */}
-      <div style={{ textAlign: 'right' }}>
+      <div className="result-row-stat" style={{ textAlign: 'right' }}>
         {platformLabel && (
           <>
             <p
@@ -326,8 +376,8 @@ function ResultRow({ row }: { row: SearchRow }) {
         )}
       </div>
 
-      {/* Match % */}
-      <div style={{ textAlign: 'right' }}>
+      {/* Match % — Phase 2 placeholder */}
+      <div className="result-row-match" style={{ textAlign: 'right' }}>
         <p
           style={{
             fontFamily: 'var(--font-mono)',
@@ -353,6 +403,62 @@ function ResultRow({ row }: { row: SearchRow }) {
         </p>
       </div>
     </a>
+  )
+}
+
+// Inline metadata line with handle, region, and colour pips + format name
+function MetaLine({ row }: { row: SearchRow }) {
+  const monoStyle: React.CSSProperties = {
+    fontFamily: 'var(--font-mono)',
+    fontSize: 10,
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    color: 'var(--ink-3)',
+  }
+  const sep = (
+    <span aria-hidden="true" style={{ color: 'var(--ink-5)', margin: '0 1px' }}>
+      ·
+    </span>
+  )
+
+  const parts: React.ReactNode[] = []
+
+  if (row.handle) parts.push(<span key="handle" style={monoStyle}>@{row.handle}</span>)
+  if (row.regionName) {
+    if (parts.length > 0) parts.push(sep)
+    parts.push(<span key="region" style={monoStyle}>{row.regionName}</span>)
+  }
+  if (row.primaryFormatColors.length > 0 || row.primaryFormatName) {
+    if (parts.length > 0) parts.push(sep)
+    if (row.primaryFormatColors.length > 0) {
+      parts.push(
+        <span key="pips" style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+          {row.primaryFormatColors.map((c) => (
+            <Pip key={c} color={c} size="sm" />
+          ))}
+        </span>
+      )
+    }
+    if (row.primaryFormatName) {
+      if (row.primaryFormatColors.length > 0) parts.push(<span key="pip-gap" style={{ display: 'inline-block', width: 3 }} />)
+      parts.push(<span key="format" style={monoStyle}>{row.primaryFormatName}</span>)
+    }
+  }
+
+  if (parts.length === 0) return null
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 2,
+        margin: '2px 0 0',
+      }}
+    >
+      {parts}
+    </div>
   )
 }
 
@@ -403,21 +509,4 @@ function Pagination({
       )}
     </div>
   )
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const PIE_COLORS: Record<string, string> = {
-  w: 'var(--w)', u: 'var(--u)', b: 'var(--b)', r: 'var(--r)', g: 'var(--g)',
-}
-
-function buildColorPie(colors: string[]): string {
-  if (colors.length === 0) return 'transparent'
-  const pct = 100 / colors.length
-  const stops = colors.flatMap((c, i) => {
-    const from = Math.round(i * pct)
-    const to = Math.round((i + 1) * pct)
-    return [`${PIE_COLORS[c] ?? 'transparent'} ${from}%`, `${PIE_COLORS[c] ?? 'transparent'} ${to}%`]
-  })
-  return `conic-gradient(${stops.join(', ')})`
 }

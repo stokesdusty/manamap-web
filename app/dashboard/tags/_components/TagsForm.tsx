@@ -139,14 +139,8 @@ function FormRow({ label, hint, error, children, last = false }: {
 }) {
   return (
     <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '160px 1fr',
-        gap: 16,
-        padding: '14px 22px',
-        borderBottom: last ? 'none' : '1px solid var(--hairline)',
-        alignItems: 'start',
-      }}
+      className="dash-form-row"
+      style={{ borderBottom: last ? 'none' : '1px solid var(--hairline)' }}
     >
       <div
         style={{

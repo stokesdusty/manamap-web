@@ -78,6 +78,7 @@ function LandingNav() {
       >
         <Wordmark />
         <div
+          className="hide-md"
           style={{
             display: 'flex',
             gap: 28,
@@ -195,15 +196,7 @@ function Hero() {
         </div>
 
         {/* Hero grid */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 320px',
-            gap: 64,
-            alignItems: 'end',
-            marginTop: 40,
-          }}
-        >
+        <div className="rg-hero-grid">
           <div>
             <h1
               style={{
@@ -342,14 +335,7 @@ function Quote() {
   return (
     <section style={{ padding: '64px 0', borderBottom: '1px solid var(--hairline)' }}>
       <div style={W}>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '200px 1fr',
-            gap: 64,
-            alignItems: 'start',
-          }}
-        >
+        <div className="rg-quote-grid">
           <div>
             <p
               style={{
@@ -467,9 +453,8 @@ function Pillars() {
         />
 
         <div
+          className="rg-3col"
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
             gap: 1,
             background: 'var(--hairline)',
             border: '1px solid var(--hairline)',
@@ -625,7 +610,7 @@ function WhoFor() {
           sub="Discovery never gets paywalled. Monetization sits on the tools that creators, stores, and brands actually want to pay for — media kits, analytics, sponsored placement, booking."
         />
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32 }}>
+        <div className="rg-3col" style={{ gap: 32 }}>
           {WHO.map((w) => (
             <div key={w.lbl} style={{ borderTop: `2px solid ${w.color}`, paddingTop: 20 }}>
               <p
@@ -754,9 +739,8 @@ function Manifesto() {
         <SectionHead eyebrow="Principles" heading={<>A tool, <em>not a feed.</em></>} dark />
 
         <div
+          className="rg-2col"
           style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
             borderTop: '1px solid rgba(255,255,255,0.12)',
             borderBottom: '1px solid rgba(255,255,255,0.12)',
           }}
@@ -829,15 +813,8 @@ function Roadmap() {
         />
 
         <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(6, 1fr)',
-            gap: 1,
-            background: 'var(--hairline)',
-            border: '1px solid var(--hairline)',
-            borderRadius: 10,
-            overflow: 'hidden',
-          }}
+          className="rg-roadmap"
+          style={{ gap: 1, background: 'var(--hairline)', border: '1px solid var(--hairline)' }}
         >
           {PHASES.map((p) => (
             <div
@@ -1009,10 +986,8 @@ function Footer() {
     <footer style={{ padding: '48px 0 56px', borderTop: '1px solid var(--hairline)' }}>
       <div style={W}>
         <div
+          className="rg-footer"
           style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr 1fr 1fr',
-            gap: 40,
             fontFamily: 'var(--font-mono)',
             fontSize: 11,
             textTransform: 'uppercase',
@@ -1155,14 +1130,7 @@ function SectionHead({
   dark?: boolean
 }) {
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '200px 1fr',
-        gap: 64,
-        marginBottom: 56,
-      }}
-    >
+    <div className="rg-sectionhead">
       <div>
         <p
           style={{
