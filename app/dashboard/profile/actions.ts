@@ -10,7 +10,6 @@ import {
   creatorFormats,
   creatorProfiles,
   formatTags,
-  regions,
 } from '@/db/schema'
 import { getCurrentCreator } from '@/lib/auth'
 
@@ -18,14 +17,19 @@ export type ProfileActionResult =
   | { ok: true }
   | { ok: false; errors: Partial<Record<string, string[]>> }
 
-const profileSchema = z.object({
+const optUrl = z.union([z.literal(''), z.string().max(2048).url()])
+
+const serverSchema = z.object({
   displayName: z.string().min(1, 'Name is required').max(255),
   handle: z
     .string()
     .min(2, 'At least 2 characters')
     .max(64)
     .regex(/^[a-z0-9-]+$/, 'Lowercase letters, numbers, and hyphens only'),
-  bio:      z.string().max(280, 'Max 280 characters').optional().default(''),
+  bio:        z.string().max(280, 'Max 280 characters'),
+  websiteUrl: optUrl,
+  avatarUrl:  optUrl,
+  bannerUrl:  optUrl,
   regionId: z.preprocess(
     (v) => (v === '' || v === null || v === undefined ? null : Number(v)),
     z.number().int().positive().nullable().optional()
@@ -37,7 +41,7 @@ const profileSchema = z.object({
 })
 
 export async function saveProfile(data: unknown): Promise<ProfileActionResult> {
-  const parsed = profileSchema.safeParse(data)
+  const parsed = serverSchema.safeParse(data)
   if (!parsed.success)
     return { ok: false, errors: parsed.error.flatten().fieldErrors }
 
@@ -61,14 +65,17 @@ export async function saveProfile(data: unknown): Promise<ProfileActionResult> {
   await db
     .update(creatorProfiles)
     .set({
-      displayName:          parsed.data.displayName,
-      slug:                 parsed.data.handle,
-      handle:               parsed.data.handle,
-      bio:                  parsed.data.bio || null,
-      regionId:             parsed.data.regionId ?? null,
-      colors:               parsed.data.colors as Array<'w' | 'u' | 'b' | 'r' | 'g'>,
-      primaryFormatId:      fmtRows[0]?.id ?? null,
-      primaryContentTagId:  tagRows[0]?.id ?? null,
+      displayName:         parsed.data.displayName,
+      slug:                parsed.data.handle,
+      handle:              parsed.data.handle,
+      bio:                 parsed.data.bio || null,
+      websiteUrl:          parsed.data.websiteUrl || null,
+      avatarUrl:           parsed.data.avatarUrl || null,
+      bannerUrl:           parsed.data.bannerUrl || null,
+      regionId:            parsed.data.regionId ?? null,
+      colors:              parsed.data.colors as Array<'w' | 'u' | 'b' | 'r' | 'g'>,
+      primaryFormatId:     fmtRows[0]?.id ?? null,
+      primaryContentTagId: tagRows[0]?.id ?? null,
     })
     .where(eq(creatorProfiles.id, creator.id))
 

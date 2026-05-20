@@ -21,6 +21,10 @@ export async function getCurrentCreator() {
       formats: { with: { format: { columns: { id: true, code: true, name: true } } } },
       contentTags: { with: { tag: { columns: { id: true, code: true, kind: true, label: true } } } },
       socialAccounts: { columns: { id: true, platform: true, handle: true, url: true, followers: true } },
+      featuredContent: {
+        columns: { id: true, platform: true, title: true, url: true, thumbnailUrl: true, sortOrder: true },
+        orderBy: (fc, { asc }) => [asc(fc.sortOrder)],
+      },
     },
   })
 }

@@ -6,10 +6,10 @@ const NAV = [
   {
     group: 'Workspace',
     links: [
-      { href: '/dashboard/profile',   label: 'Profile'     },
-      { href: '/dashboard/platforms', label: 'Platforms'   },
-      { href: '/dashboard/content',   label: 'Content'     },
-      { href: '/dashboard/events',    label: 'Events'      },
+      { href: '/dashboard/profile',   label: 'Profile'   },
+      { href: '/dashboard/platforms', label: 'Platforms' },
+      { href: '/dashboard/tags',      label: 'Tags'      },
+      { href: '/dashboard/featured',  label: 'Featured'  },
     ],
   },
   {
@@ -24,7 +24,7 @@ const NAV = [
     group: 'Account',
     links: [
       { href: '/dashboard/billing',   label: 'Plan & billing' },
-      { href: '/dashboard/settings',  label: 'Settings'    },
+      { href: '/dashboard/account',   label: 'Account'        },
     ],
   },
 ]

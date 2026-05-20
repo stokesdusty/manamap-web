@@ -159,6 +159,8 @@ export const creatorProfiles = pgTable(
     handle: varchar('handle', { length: 128 }),
     bio: text('bio'),
     avatarUrl: varchar('avatar_url', { length: 2048 }),
+    bannerUrl: varchar('banner_url', { length: 2048 }),
+    websiteUrl: varchar('website_url', { length: 2048 }),
     regionId: bigint('region_id', { mode: 'number' }).references(() => regions.id),
     // Denormalized for the composite faceted-search index below. Junction tables hold the full many-to-many.
     primaryFormatId: bigint('primary_format_id', { mode: 'number' }).references(
@@ -252,9 +254,11 @@ export const featuredContent = pgTable('featured_content', {
     .notNull()
     .references(() => creatorProfiles.id, { onDelete: 'cascade' }),
   platform: platformEnum('platform').notNull(),
-  externalId: varchar('external_id', { length: 255 }).notNull(),
+  externalId: varchar('external_id', { length: 255 }).notNull().default(''),
   title: text('title').notNull(),
+  url: varchar('url', { length: 2048 }),
   thumbnailUrl: varchar('thumbnail_url', { length: 2048 }),
+  sortOrder: integer('sort_order').notNull().default(0),
   publishedAt: timestamp('published_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

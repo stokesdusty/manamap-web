@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Pip } from '@/components/ui/Pip'
 import { Hairline } from '@/components/ui/Hairline'
 import { ProfileTabs } from './_components/ProfileTabs'
+import { ProfileViewCapture } from './_components/ProfileViewCapture'
 import type { AppearanceItem, FeaturedItem } from './_components/ProfileTabs'
 
 // ── Cache / revalidation ──────────────────────────────────────────────────────
@@ -93,6 +94,7 @@ export default async function CreatorProfilePage({ params }: Props) {
 
   return (
     <main>
+      <ProfileViewCapture slug={slug} />
       {/* ── Profile hero ─────────────────────────────────────────────────── */}
       <div
         style={{

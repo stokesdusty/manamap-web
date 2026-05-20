@@ -3,23 +3,27 @@
 import { useState, useTransition } from 'react'
 import { useForm, useController } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { Pip } from '@/components/ui/Pip'
-import { ImageUpload } from '@/components/ui/ImageUpload'
-import { profileFormSchema, type ProfileFormValues } from '@/lib/validators/profile'
-import { saveProfile } from '../actions'
+import { saveTags } from '../actions'
 
-export type { ProfileFormValues }
+const tagsSchema = z.object({
+  formats:  z.array(z.string()).min(1, 'Pick at least one format'),
+  colors:   z.array(z.string()),
+  tags:     z.array(z.string()),
+  audience: z.array(z.string()),
+})
 
-export interface FormatOption  { code: string; name: string }
-export interface TagOption     { code: string; label: string }
-export interface RegionOption  { id: number;   name: string; code: string }
+type TagsFormValues = z.infer<typeof tagsSchema>
 
-interface ProfileEditFormProps {
-  initial:      ProfileFormValues
-  allFormats:   FormatOption[]
-  styleTags:    TagOption[]
+export interface FormatOption { code: string; name: string }
+export interface TagOption    { code: string; label: string }
+
+interface TagsFormProps {
+  initial:     TagsFormValues
+  allFormats:  FormatOption[]
+  styleTags:   TagOption[]
   audienceTags: TagOption[]
-  allRegions:   RegionOption[]
 }
 
 const WUBRG = [
@@ -30,39 +34,24 @@ const WUBRG = [
   { code: 'g', label: 'G' },
 ] as const
 
-export function ProfileEditForm({
-  initial,
-  allFormats,
-  styleTags,
-  audienceTags,
-  allRegions,
-}: ProfileEditFormProps) {
+export function TagsForm({ initial, allFormats, styleTags, audienceTags }: TagsFormProps) {
   const [saved, setSaved] = useState(false)
   const [rootError, setRootError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
-  const { register, handleSubmit, control, watch, setError, formState: { errors } } =
-    useForm<ProfileFormValues>({
-      resolver: zodResolver(profileFormSchema),
-      defaultValues: initial,
-      mode: 'onTouched',
-    })
-
-  const bioValue = watch('bio') ?? ''
+  const { handleSubmit, control, formState: { errors } } = useForm<TagsFormValues>({
+    resolver: zodResolver(tagsSchema),
+    defaultValues: initial,
+    mode: 'onTouched',
+  })
 
   const onSubmit = handleSubmit((data) => {
     setSaved(false)
     setRootError(null)
     startTransition(async () => {
-      const result = await saveProfile(data)
+      const result = await saveTags(data)
       if (!result.ok) {
-        if (result.errors.root) {
-          setRootError(result.errors.root[0] ?? null)
-        } else {
-          Object.entries(result.errors).forEach(([k, msgs]) => {
-            if (msgs?.[0]) setError(k as keyof ProfileFormValues, { message: msgs[0] })
-          })
-        }
+        setRootError(result.errors.root?.[0] ?? 'Save failed')
       } else {
         setSaved(true)
       }
@@ -78,26 +67,6 @@ export function ProfileEditForm({
           borderRadius: 8,
         }}
       >
-        <FormRow label="Display name" hint="Public, used in search" error={errors.displayName?.message}>
-          <input {...register('displayName')} style={inp} />
-        </FormRow>
-
-        <FormRow label="Handle" hint="manamap.gg/c/[handle]" error={errors.handle?.message}>
-          <input {...register('handle')} style={inp} />
-        </FormRow>
-
-        <FormRow label="Website" hint="Optional public link" error={errors.websiteUrl?.message}>
-          <input {...register('websiteUrl')} placeholder="https://" style={inp} />
-        </FormRow>
-
-        <FormRow label="Avatar" hint="Circular, 1:1" error={errors.avatarUrl?.message}>
-          <AvatarUploadField control={control} />
-        </FormRow>
-
-        <FormRow label="Banner" hint="3:1 ratio" error={errors.bannerUrl?.message}>
-          <BannerUploadField control={control} />
-        </FormRow>
-
         <FormRow label="Formats" hint="Pick up to 4" error={errors.formats?.message as string | undefined}>
           <ChipMulti
             name="formats"
@@ -111,7 +80,7 @@ export function ProfileEditForm({
           <ColorChips control={control} />
         </FormRow>
 
-        <FormRow label="Content types">
+        <FormRow label="Content types" error={errors.tags?.message as string | undefined}>
           <ChipMulti
             name="tags"
             control={control}
@@ -119,33 +88,11 @@ export function ProfileEditForm({
           />
         </FormRow>
 
-        <FormRow label="Audience style">
+        <FormRow label="Audience style" last>
           <ChipMulti
             name="audience"
             control={control}
             options={audienceTags.map((t) => ({ value: t.code, label: t.label }))}
-          />
-        </FormRow>
-
-        <FormRow label="Region / timezone">
-          <select {...register('regionId')} style={{ ...inp, paddingRight: 32 }}>
-            <option value="">— not set —</option>
-            {allRegions.map((r) => (
-              <option key={r.id} value={r.id}>{r.name}</option>
-            ))}
-          </select>
-        </FormRow>
-
-        <FormRow
-          label="Bio"
-          hint={`${bioValue.length}/280`}
-          error={errors.bio?.message}
-          last
-        >
-          <textarea
-            {...register('bio')}
-            rows={3}
-            style={{ ...inp, resize: 'vertical', minHeight: 72 }}
           />
         </FormRow>
       </div>
@@ -158,9 +105,7 @@ export function ProfileEditForm({
           marginTop: 20,
         }}
       >
-        {rootError && (
-          <p style={{ fontSize: 13, color: 'var(--r)', margin: 0 }}>{rootError}</p>
-        )}
+        {rootError && <p style={{ fontSize: 13, color: 'var(--r)', margin: 0 }}>{rootError}</p>}
         {saved && !rootError && (
           <p style={{ color: 'var(--g)', margin: 0, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: 11 }}>
             Saved ✓
@@ -182,49 +127,15 @@ export function ProfileEditForm({
             cursor: pending ? 'not-allowed' : 'pointer',
           }}
         >
-          {pending ? 'Saving…' : 'Save changes'}
+          {pending ? 'Saving…' : 'Save tags'}
         </button>
       </div>
     </form>
   )
 }
 
-function AvatarUploadField({ control }: { control: ReturnType<typeof useForm<ProfileFormValues>>['control'] }) {
-  const { field } = useController({ name: 'avatarUrl', control })
-  return (
-    <ImageUpload
-      kind="avatar"
-      value={field.value ?? undefined}
-      onChange={field.onChange}
-      label="Avatar photo"
-    />
-  )
-}
-
-function BannerUploadField({ control }: { control: ReturnType<typeof useForm<ProfileFormValues>>['control'] }) {
-  const { field } = useController({ name: 'bannerUrl', control })
-  return (
-    <ImageUpload
-      kind="banner"
-      value={field.value ?? undefined}
-      onChange={field.onChange}
-      label="Profile banner"
-    />
-  )
-}
-
-function FormRow({
-  label,
-  hint,
-  error,
-  children,
-  last = false,
-}: {
-  label: string
-  hint?: string
-  error?: string
-  children: React.ReactNode
-  last?: boolean
+function FormRow({ label, hint, error, children, last = false }: {
+  label: string; hint?: string; error?: string; children: React.ReactNode; last?: boolean
 }) {
   return (
     <div
@@ -249,39 +160,24 @@ function FormRow({
       >
         {label}
         {hint && (
-          <span
-            style={{
-              display: 'block',
-              fontFamily: 'var(--font-sans)',
-              textTransform: 'none',
-              letterSpacing: 0,
-              fontSize: 10,
-              color: 'var(--ink-4)',
-              marginTop: 2,
-            }}
-          >
+          <span style={{ display: 'block', fontFamily: 'var(--font-sans)', textTransform: 'none', letterSpacing: 0, fontSize: 10, color: 'var(--ink-4)', marginTop: 2 }}>
             {hint}
           </span>
         )}
       </div>
       <div>
         {children}
-        {error && (
-          <p style={{ fontSize: 12, color: 'var(--r)', margin: '4px 0 0' }}>{error}</p>
-        )}
+        {error && <p style={{ fontSize: 12, color: 'var(--r)', margin: '4px 0 0' }}>{error}</p>}
       </div>
     </div>
   )
 }
 
 function ChipMulti({
-  name,
-  control,
-  options,
-  max,
+  name, control, options, max,
 }: {
-  name: keyof ProfileFormValues
-  control: ReturnType<typeof useForm<ProfileFormValues>>['control']
+  name: keyof TagsFormValues
+  control: ReturnType<typeof useForm<TagsFormValues>>['control']
   options: Array<{ value: string; label: string }>
   max?: number
 }) {
@@ -329,7 +225,7 @@ function ChipMulti({
   )
 }
 
-function ColorChips({ control }: { control: ReturnType<typeof useForm<ProfileFormValues>>['control'] }) {
+function ColorChips({ control }: { control: ReturnType<typeof useForm<TagsFormValues>>['control'] }) {
   const { field } = useController({ name: 'colors', control })
   const selected = (field.value as string[]) ?? []
 
@@ -342,9 +238,7 @@ function ColorChips({ control }: { control: ReturnType<typeof useForm<ProfileFor
             key={code}
             type="button"
             onClick={() =>
-              field.onChange(
-                active ? selected.filter((c) => c !== code) : [...selected, code]
-              )
+              field.onChange(active ? selected.filter((c) => c !== code) : [...selected, code])
             }
             style={{
               display: 'inline-flex',
@@ -369,17 +263,4 @@ function ColorChips({ control }: { control: ReturnType<typeof useForm<ProfileFor
       })}
     </div>
   )
-}
-
-const inp: React.CSSProperties = {
-  width: '100%',
-  boxSizing: 'border-box',
-  background: 'var(--surface-tint)',
-  border: '1px solid var(--hairline)',
-  borderRadius: 5,
-  padding: '8px 12px',
-  fontFamily: 'var(--font-sans)',
-  fontSize: 13,
-  color: 'var(--ink)',
-  outline: 'none',
 }

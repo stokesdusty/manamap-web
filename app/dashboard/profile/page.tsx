@@ -3,17 +3,11 @@ import { asc } from 'drizzle-orm'
 import { db } from '@/db'
 import { contentTags, formatTags, regions } from '@/db/schema'
 import { getCurrentCreator } from '@/lib/auth'
+import { getProfileViewCount } from '@/lib/posthog-server'
 import { ProfileEditForm } from './_components/ProfileEditForm'
+import type { ProfileFormValues } from '@/lib/validators/profile'
 
 export const metadata: Metadata = { title: 'Edit Profile' }
-
-// Stub stats — replace with real analytics in Phase 2
-const STATS = [
-  { n: '2,184', label: 'Profile views · 30d',  delta: '▲ 24% vs prev.' },
-  { n: '312',   label: 'Outbound clicks',       delta: '▲ 8%'           },
-  { n: '14',    label: 'Sponsor views',         delta: '▲ 2'            },
-  { n: '96%',   label: 'Avg search match',      delta: '—'              },
-]
 
 export default async function DashboardProfilePage() {
   const [creator, fmtRows, tagRows, regionRows] = await Promise.all([
@@ -23,29 +17,47 @@ export default async function DashboardProfilePage() {
     db.query.regions.findMany({ orderBy: [asc(regions.name)] }),
   ])
 
+  const profileViewCount = creator
+    ? await getProfileViewCount(creator.slug)
+    : null
+
   const allFormats   = fmtRows.map((f) => ({ code: f.code, name: f.name }))
   const styleTags    = tagRows.filter((t) => t.kind === 'style' || t.kind === 'theme').map((t) => ({ code: t.code, label: t.label }))
   const audienceTags = tagRows.filter((t) => t.kind === 'audience').map((t) => ({ code: t.code, label: t.label }))
   const allRegions   = regionRows.map((r) => ({ id: r.id, code: r.code, name: r.name }))
 
-  const initial = creator
+  const initial: ProfileFormValues = creator
     ? {
         displayName: creator.displayName,
         handle:      creator.handle ?? creator.slug,
         bio:         creator.bio ?? '',
+        websiteUrl:  creator.websiteUrl ?? '',
+        avatarUrl:   creator.avatarUrl ?? '',
+        bannerUrl:   creator.bannerUrl ?? '',
         regionId:    creator.regionId?.toString() ?? '',
         formats:     creator.formats.map((f) => f.format.code),
         colors:      creator.colors,
         tags:        creator.contentTags.filter((ct) => ct.tag.kind === 'style' || ct.tag.kind === 'theme').map((ct) => ct.tag.code),
         audience:    creator.contentTags.filter((ct) => ct.tag.kind === 'audience').map((ct) => ct.tag.code),
       }
-    : { displayName: '', handle: '', bio: '', regionId: '', formats: [], colors: [], tags: [], audience: [] }
+    : { displayName: '', handle: '', bio: '', websiteUrl: '', avatarUrl: '', bannerUrl: '', regionId: '', formats: [], colors: [], tags: [], audience: [] }
 
   const completionPct = creator ? calcCompletion(creator) : 0
 
+  const STATS = [
+    {
+      n:     profileViewCount !== null ? profileViewCount.toLocaleString() : '—',
+      label: 'Profile views · 30d',
+      delta: profileViewCount !== null ? '' : 'PostHog not configured',
+      real:  true,
+    },
+    { n: '—', label: 'Outbound clicks',  delta: 'Phase 2', real: false },
+    { n: '—', label: 'Sponsor views',    delta: 'Phase 4', real: false },
+    { n: '—', label: 'Avg search match', delta: 'Phase 2', real: false },
+  ]
+
   return (
     <main style={{ background: 'var(--paper)', padding: '24px 28px', minHeight: '100vh' }}>
-      {/* Page header */}
       <h1
         style={{
           fontFamily: 'var(--font-serif)',
@@ -83,7 +95,6 @@ export default async function DashboardProfilePage() {
         )}
       </p>
 
-      {/* Stats row */}
       <div
         style={{
           display: 'grid',
@@ -92,7 +103,7 @@ export default async function DashboardProfilePage() {
           marginBottom: 24,
         }}
       >
-        {STATS.map(({ n, label, delta }) => (
+        {STATS.map(({ n, label, delta, real }) => (
           <div
             key={label}
             style={{
@@ -125,21 +136,22 @@ export default async function DashboardProfilePage() {
             >
               {label}
             </p>
-            <p
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 10,
-                color: delta.startsWith('▲') ? 'var(--g)' : 'var(--ink-4)',
-                margin: 0,
-              }}
-            >
-              {delta}
-            </p>
+            {delta && (
+              <p
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 10,
+                  color: real ? 'var(--ink-4)' : 'var(--ink-5)',
+                  margin: 0,
+                }}
+              >
+                {delta}
+              </p>
+            )}
           </div>
         ))}
       </div>
 
-      {/* Edit form */}
       <ProfileEditForm
         initial={initial}
         allFormats={allFormats}
@@ -150,8 +162,6 @@ export default async function DashboardProfilePage() {
     </main>
   )
 }
-
-// ── Profile completion % ──────────────────────────────────────────────────────
 
 function calcCompletion(creator: NonNullable<Awaited<ReturnType<typeof getCurrentCreator>>>) {
   const checks = [
