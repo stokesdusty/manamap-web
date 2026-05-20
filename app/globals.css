@@ -131,3 +131,8 @@ html {
 .pip-b { background-color: var(--b); }
 .pip-r { background-color: var(--r); }
 .pip-g { background-color: var(--g); }
+
+/* ── Print utility — hides navigation / CTAs when generating PDF ─────────── */
+@media print {
+  .no-print { display: none !important; }
+}
