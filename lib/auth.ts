@@ -1,20 +1,19 @@
+import { auth } from '@clerk/nextjs/server'
 import { eq } from 'drizzle-orm'
 import { db } from '@/db'
-import { creatorProfiles } from '@/db/schema'
+import { users, creatorProfiles } from '@/db/schema'
 
-/**
- * Returns the current authenticated creator profile.
- *
- * TODO: replace body with Clerk lookup when auth is wired:
- *   const { userId } = await auth()
- *   if (!userId) return null
- *   const user = await db.query.users.findFirst({ where: eq(users.clerkId, userId) })
- *   if (!user) return null
- *   return db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, user.id), with: {...} })
- */
 export async function getCurrentCreator() {
+  const { userId } = await auth()
+  if (!userId) return null
+
+  const user = await db.query.users.findFirst({
+    where: eq(users.clerkId, userId),
+  })
+  if (!user) return null
+
   return db.query.creatorProfiles.findFirst({
-    where: eq(creatorProfiles.slug, 'lyra-vance'),
+    where: eq(creatorProfiles.userId, user.id),
     with: {
       region: true,
       primaryFormat: { columns: { id: true, code: true, name: true, colors: true } },

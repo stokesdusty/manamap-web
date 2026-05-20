@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Show, UserButton } from '@clerk/nextjs'
 import { SignupForm } from './_components/SignupForm'
 import { Pip } from '@/components/ui/Pip'
 
@@ -98,19 +99,55 @@ function LandingNav() {
             </a>
           ))}
         </div>
-        <a
-          href="#waitlist"
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 11,
-            textTransform: 'uppercase',
-            letterSpacing: '0.08em',
-            color: 'var(--ink-3)',
-            textDecoration: 'none',
-          }}
-        >
-          Join waitlist →
-        </a>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <Show when="signed-out">
+            <a
+              href="/sign-in"
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 11,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                color: 'var(--ink-3)',
+                textDecoration: 'none',
+              }}
+            >
+              Sign in
+            </a>
+            <a
+              href="/sign-up"
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 11,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                color: 'var(--paper)',
+                background: 'var(--ink)',
+                padding: '6px 14px',
+                borderRadius: 999,
+                textDecoration: 'none',
+              }}
+            >
+              Claim your profile →
+            </a>
+          </Show>
+          <Show when="signed-in">
+            <a
+              href="/dashboard"
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 11,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                color: 'var(--ink-3)',
+                textDecoration: 'none',
+              }}
+            >
+              Dashboard
+            </a>
+            <UserButton />
+          </Show>
+        </div>
       </div>
     </nav>
   )

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Newsreader, Geist, Geist_Mono } from 'next/font/google'
+import { ClerkProvider } from '@clerk/nextjs'
 import './globals.css'
 
 const newsreader = Newsreader({
@@ -37,13 +38,15 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="en"
-      className={`${newsreader.variable} ${geist.variable} ${geistMono.variable} h-full`}
-    >
-      <body className="min-h-full flex flex-col bg-paper text-ink antialiased">
-        {children}
-      </body>
-    </html>
+    <ClerkProvider>
+      <html
+        lang="en"
+        className={`${newsreader.variable} ${geist.variable} ${geistMono.variable} h-full`}
+      >
+        <body className="min-h-full flex flex-col bg-paper text-ink antialiased">
+          {children}
+        </body>
+      </html>
+    </ClerkProvider>
   )
 }
