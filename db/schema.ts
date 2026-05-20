@@ -44,6 +44,7 @@ export const platformEnum = pgEnum('platform', [
   'moxfield',
   'archidekt',
   'podcast',
+  'patreon',
 ])
 
 export const formatCodeEnum = pgEnum('format_code', [
@@ -167,6 +168,7 @@ export const creatorProfiles = pgTable(
       () => contentTags.id
     ),
     verified: boolean('verified').notNull().default(false),
+    published: boolean('published').notNull().default(false),
     isFeatured: boolean('is_featured').notNull().default(false),
     colors: jsonb('colors')
       .$type<Array<'w' | 'u' | 'b' | 'r' | 'g'>>()

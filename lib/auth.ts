@@ -3,13 +3,14 @@ import { eq } from 'drizzle-orm'
 import { db } from '@/db'
 import { users, creatorProfiles } from '@/db/schema'
 
-export async function getCurrentCreator() {
+export async function getCurrentUser() {
   const { userId } = await auth()
   if (!userId) return null
+  return db.query.users.findFirst({ where: eq(users.clerkId, userId) })
+}
 
-  const user = await db.query.users.findFirst({
-    where: eq(users.clerkId, userId),
-  })
+export async function getCurrentCreator() {
+  const user = await getCurrentUser()
   if (!user) return null
 
   return db.query.creatorProfiles.findFirst({

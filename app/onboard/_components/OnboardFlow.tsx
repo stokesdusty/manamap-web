@@ -1,35 +1,41 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef, useCallback } from 'react'
 import { useForm, useController } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useRouter } from 'next/navigation'
 import { Pip } from '@/components/ui/Pip'
+import { capture } from '@/lib/posthog'
 import {
+  checkHandleAvailability,
   saveOnboardStep1,
   saveOnboardStep2,
   saveOnboardStep3,
   publishProfile,
+  SLUG_DENYLIST,
 } from '../actions'
 import type { ActionResult } from '../actions'
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
+const HANDLE_REGEX = /^[a-z0-9-]{3,32}$/
+
 const schema = z.object({
   displayName: z.string().min(1, 'Name is required').max(255),
   handle: z
     .string()
-    .min(2, 'At least 2 characters')
-    .max(64)
-    .regex(/^[a-z0-9-]+$/, 'Lowercase letters, numbers, and hyphens only'),
-  youtube:  z.string().max(255),
-  twitch:   z.string().max(255),
-  bluesky:  z.string().max(255),
-  moxfield: z.string().max(255),
+    .regex(HANDLE_REGEX, 'Lowercase letters, numbers, and hyphens — 3 to 32 characters'),
+  youtube:  z.string().max(100),
+  twitch:   z.string().max(100),
+  tiktok:   z.string().max(100),
+  bluesky:  z.string().max(100),
+  twitter:  z.string().max(100),
+  patreon:  z.string().max(100),
+  moxfield: z.string().max(100),
   formats:  z.array(z.string()).min(1, 'Pick at least one format'),
   colors:   z.array(z.string()),
-  tags:     z.array(z.string()),
+  tags:     z.array(z.string()).min(1, 'Pick at least one content type'),
   audience: z.array(z.string()),
 })
 
@@ -37,11 +43,12 @@ type FormValues = z.infer<typeof schema>
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export interface FormatOption    { code: string; name: string }
-export interface TagOption       { code: string; label: string }
+export interface FormatOption { code: string; name: string }
+export interface TagOption    { code: string; label: string }
 
 interface OnboardFlowProps {
-  initial: Partial<FormValues>
+  initial:      Partial<FormValues>
+  initialStep:  number
   allFormats:   FormatOption[]
   styleTags:    TagOption[]
   audienceTags: TagOption[]
@@ -50,25 +57,26 @@ interface OnboardFlowProps {
 // ── Step metadata ─────────────────────────────────────────────────────────────
 
 const STEPS = [
-  { n: '01', title: 'Claim your handle',   time: '15s' },
-  { n: '02', title: 'Connect platforms',   time: '30s' },
-  { n: '03', title: 'Tag yourself',        time: '30s' },
-  { n: '04', title: 'Publish',             time: '15s' },
+  { n: '01', title: 'Claim your handle', time: '15s' },
+  { n: '02', title: 'Connect platforms', time: '30s' },
+  { n: '03', title: 'Tag yourself',      time: '30s' },
+  { n: '04', title: 'Publish',           time: '15s' },
 ]
 
 const STEP_FIELDS: Array<Array<keyof FormValues>> = [
   ['displayName', 'handle'],
-  ['youtube', 'twitch', 'bluesky', 'moxfield'],
+  ['youtube', 'twitch', 'tiktok', 'bluesky', 'twitter', 'patreon', 'moxfield'],
   ['formats', 'colors', 'tags', 'audience'],
   [],
 ]
 
 // ── Root component ────────────────────────────────────────────────────────────
 
-export function OnboardFlow({ initial, allFormats, styleTags, audienceTags }: OnboardFlowProps) {
-  const [step, setStep] = useState(1)
+export function OnboardFlow({ initial, initialStep, allFormats, styleTags, audienceTags }: OnboardFlowProps) {
+  const [step, setStep] = useState(initialStep)
   const [pending, startTransition] = useTransition()
   const [rootError, setRootError] = useState<string | null>(null)
+  const startedAtRef = useRef<number>(Date.now())
   const router = useRouter()
 
   const form = useForm<FormValues>({
@@ -78,7 +86,10 @@ export function OnboardFlow({ initial, allFormats, styleTags, audienceTags }: On
       handle:      initial.handle      ?? '',
       youtube:     initial.youtube     ?? '',
       twitch:      initial.twitch      ?? '',
+      tiktok:      initial.tiktok      ?? '',
       bluesky:     initial.bluesky     ?? '',
+      twitter:     initial.twitter     ?? '',
+      patreon:     initial.patreon     ?? '',
       moxfield:    initial.moxfield    ?? '',
       formats:     initial.formats     ?? [],
       colors:      initial.colors      ?? [],
@@ -88,7 +99,7 @@ export function OnboardFlow({ initial, allFormats, styleTags, audienceTags }: On
     mode: 'onTouched',
   })
 
-  const { register, trigger, getValues, setError, formState: { errors } } = form
+  const { trigger, getValues, setError, formState: { errors } } = form
 
   async function handleNext() {
     const fields = STEP_FIELDS[step - 1]!
@@ -98,12 +109,22 @@ export function OnboardFlow({ initial, allFormats, styleTags, audienceTags }: On
     const values = getValues()
     let result: ActionResult
 
-    if (step === 1) result = await saveOnboardStep1({ displayName: values.displayName, handle: values.handle })
-    else if (step === 2) result = await saveOnboardStep2({ youtube: values.youtube, twitch: values.twitch, bluesky: values.bluesky, moxfield: values.moxfield })
-    else if (step === 3) result = await saveOnboardStep3({ formats: values.formats, colors: values.colors, tags: values.tags, audience: values.audience })
-    else {
+    if (step === 1) {
+      result = await saveOnboardStep1({ displayName: values.displayName, handle: values.handle })
+    } else if (step === 2) {
+      result = await saveOnboardStep2({
+        youtube: values.youtube, twitch: values.twitch, tiktok: values.tiktok,
+        bluesky: values.bluesky, twitter: values.twitter, patreon: values.patreon,
+        moxfield: values.moxfield,
+      })
+    } else if (step === 3) {
+      result = await saveOnboardStep3({
+        formats: values.formats, colors: values.colors, tags: values.tags, audience: values.audience,
+      })
+    } else {
       const pubResult = await publishProfile()
       if (pubResult.ok) {
+        capture('onboard_complete', { total_ms: Date.now() - startedAtRef.current })
         router.push(`/c/${pubResult.data!.slug}`)
         return
       }
@@ -122,6 +143,7 @@ export function OnboardFlow({ initial, allFormats, styleTags, audienceTags }: On
       return
     }
 
+    capture('onboard_step_complete', { step, elapsed_ms: Date.now() - startedAtRef.current })
     setRootError(null)
     setStep((s) => s + 1)
   }
@@ -173,7 +195,7 @@ export function OnboardFlow({ initial, allFormats, styleTags, audienceTags }: On
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  background: done ? 'var(--ink)' : active ? 'var(--ink)' : 'var(--paper)',
+                  background: done || active ? 'var(--ink)' : 'var(--paper)',
                   border: `1px solid ${done || active ? 'var(--ink)' : 'var(--hairline-strong)'}`,
                   fontFamily: 'var(--font-mono)',
                   fontSize: 11,
@@ -183,13 +205,7 @@ export function OnboardFlow({ initial, allFormats, styleTags, audienceTags }: On
                 {done ? '✓' : n}
               </div>
               {i < STEPS.length - 1 && (
-                <div
-                  style={{
-                    width: 32,
-                    height: 1,
-                    background: done ? 'var(--ink)' : 'var(--hairline)',
-                  }}
-                />
+                <div style={{ width: 32, height: 1, background: done ? 'var(--ink)' : 'var(--hairline)' }} />
               )}
             </div>
           )
@@ -207,7 +223,6 @@ export function OnboardFlow({ initial, allFormats, styleTags, audienceTags }: On
           padding: '32px 36px 28px',
         }}
       >
-        {/* Step header */}
         <p
           style={{
             fontFamily: 'var(--font-mono)',
@@ -233,24 +248,18 @@ export function OnboardFlow({ initial, allFormats, styleTags, audienceTags }: On
         </h1>
 
         {rootError && (
-          <p style={{ color: 'var(--r)', fontSize: 13, marginBottom: 16 }}>{rootError}</p>
+          <p style={{ color: 'var(--r)', fontSize: 13, marginBottom: 16, fontFamily: 'var(--font-sans)' }}>
+            {rootError}
+          </p>
         )}
 
-        {/* Step content */}
-        {step === 1 && <StepHandle register={register} errors={errors} />}
-        {step === 2 && <StepPlatforms register={register} errors={errors} />}
+        {step === 1 && <StepHandle form={form} errors={errors} />}
+        {step === 2 && <StepPlatforms form={form} errors={errors} />}
         {step === 3 && (
-          <StepTags
-            form={form}
-            allFormats={allFormats}
-            styleTags={styleTags}
-            audienceTags={audienceTags}
-            errors={errors}
-          />
+          <StepTags form={form} allFormats={allFormats} styleTags={styleTags} audienceTags={audienceTags} errors={errors} />
         )}
         {step === 4 && <StepPublish handle={getValues('handle')} />}
 
-        {/* Footer nav */}
         <div
           style={{
             display: 'flex',
@@ -262,11 +271,7 @@ export function OnboardFlow({ initial, allFormats, styleTags, audienceTags }: On
           }}
         >
           {step > 1 ? (
-            <button
-              type="button"
-              onClick={() => setStep((s) => s - 1)}
-              style={ghostBtn}
-            >
+            <button type="button" onClick={() => setStep((s) => s - 1)} style={ghostBtn}>
               ← Back
             </button>
           ) : (
@@ -288,28 +293,59 @@ export function OnboardFlow({ initial, allFormats, styleTags, audienceTags }: On
 
 // ── Step 1: Handle ────────────────────────────────────────────────────────────
 
+type HandleAvailability = 'idle' | 'checking' | 'available' | 'taken' | 'invalid'
+
 function StepHandle({
-  register,
+  form,
   errors,
 }: {
-  register: ReturnType<typeof useForm<FormValues>>['register']
+  form: ReturnType<typeof useForm<FormValues>>
   errors: ReturnType<typeof useForm<FormValues>>['formState']['errors']
 }) {
+  const { register } = form
+  const [availability, setAvailability] = useState<HandleAvailability>('idle')
+  const [availMsg, setAvailMsg] = useState('')
+
+  const checkAvailability = useCallback(async (value: string) => {
+    if (!HANDLE_REGEX.test(value) || SLUG_DENYLIST.has(value)) {
+      setAvailability('invalid')
+      return
+    }
+    setAvailability('checking')
+    const result = await checkHandleAvailability(value)
+    setAvailability(result.available ? 'available' : 'taken')
+    setAvailMsg(result.message ?? '')
+  }, [])
+
+  const availColor =
+    availability === 'available' ? 'var(--g)' :
+    availability === 'taken' || availability === 'invalid' ? 'var(--r)' : 'var(--ink-4)'
+
+  const availText =
+    availability === 'available' ? '✓ Available' :
+    availability === 'checking'  ? 'Checking…'  :
+    availability === 'taken'     ? `✗ ${availMsg || 'Handle taken'}` :
+    availability === 'invalid'   ? `✗ ${availMsg || 'Invalid format'}` : ''
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <FormField label="Display name" hint="Shown publicly, used in search" error={errors.displayName?.message}>
-        <input
-          {...register('displayName')}
-          placeholder="Your creator name"
-          style={inputStyle}
-        />
+        <input {...register('displayName')} placeholder="Your creator name" style={inputStyle} />
       </FormField>
+
       <FormField label="Your URL" hint="manamap.gg/c/[handle]" error={errors.handle?.message}>
         <input
-          {...register('handle')}
+          {...register('handle', {
+            onBlur: (e) => checkAvailability(e.target.value),
+          })}
           placeholder="your-handle"
           style={inputStyle}
         />
+        {availText && (
+          <p style={{ fontSize: 12, color: availColor, margin: '4px 0 0', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}>
+            {availText}
+          </p>
+        )}
       </FormField>
     </div>
   )
@@ -318,32 +354,43 @@ function StepHandle({
 // ── Step 2: Platforms ─────────────────────────────────────────────────────────
 
 const PLATFORMS = [
-  { id: 'youtube',  label: 'YouTube',  placeholder: 'channel-name' },
-  { id: 'twitch',   label: 'Twitch',   placeholder: 'username' },
-  { id: 'bluesky',  label: 'Bluesky',  placeholder: 'you.bsky.social' },
-  { id: 'moxfield', label: 'Moxfield', placeholder: 'username' },
+  { id: 'youtube',  label: 'YouTube',     pip: '#FF0000', placeholder: 'channel-name' },
+  { id: 'twitch',   label: 'Twitch',      pip: '#9146FF', placeholder: 'username' },
+  { id: 'tiktok',   label: 'TikTok',      pip: '#010101', placeholder: 'username' },
+  { id: 'bluesky',  label: 'Bluesky',     pip: '#0085FF', placeholder: 'you.bsky.social' },
+  { id: 'twitter',  label: 'X (Twitter)', pip: '#14171A', placeholder: 'username' },
+  { id: 'patreon',  label: 'Patreon',     pip: '#FF424D', placeholder: 'username' },
+  { id: 'moxfield', label: 'Moxfield',    pip: '#5C8A5A', placeholder: 'username' },
 ] as const
 
 function StepPlatforms({
-  register,
+  form,
   errors,
 }: {
-  register: ReturnType<typeof useForm<FormValues>>['register']
+  form: ReturnType<typeof useForm<FormValues>>
   errors: ReturnType<typeof useForm<FormValues>>['formState']['errors']
 }) {
+  const { register } = form
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <p style={{ fontSize: 13, color: 'var(--ink-3)', margin: '0 0 4px', lineHeight: 1.5 }}>
-        Enter your handles — we collect followers automatically later.
+        Enter your handles — we'll collect follower counts in the background.
       </p>
-      {PLATFORMS.map(({ id, label, placeholder }) => (
-        <FormField key={id} label={label} error={(errors as Record<string, { message?: string }>)[id]?.message}>
+      {PLATFORMS.map(({ id, label, pip, placeholder }) => (
+        <div key={id}>
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-3)', margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: pip, flexShrink: 0 }} />
+            {label}
+          </p>
           <input
-            {...register(id)}
+            {...register(id as keyof FormValues)}
             placeholder={placeholder}
             style={inputStyle}
           />
-        </FormField>
+          {(errors as Record<string, { message?: string }>)[id]?.message && (
+            <FieldError message={(errors as Record<string, { message?: string }>)[id]!.message!} />
+          )}
+        </div>
       ))}
     </div>
   )
@@ -376,8 +423,8 @@ function StepTags({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div>
         <FieldLabel label="Formats" hint="Pick up to 4" />
-        <ChipSelect name="formats" control={form.control} options={allFormats.map(f => ({ value: f.code, label: f.name }))} max={4} />
-        {errors.formats && <FieldError message={String(errors.formats.message ?? errors.formats.root?.message ?? '')} />}
+        <ChipSelect name="formats" control={form.control} options={allFormats.map((f) => ({ value: f.code, label: f.name }))} max={4} />
+        {errors.formats && <FieldError message={String(errors.formats.message ?? (errors.formats as { root?: { message?: string } }).root?.message ?? '')} />}
       </div>
 
       <div>
@@ -390,27 +437,20 @@ function StepTags({
       </div>
 
       <div>
-        <FieldLabel label="Content type" />
-        <ChipSelect name="tags" control={form.control} options={styleTags.map(t => ({ value: t.code, label: t.label }))} />
+        <FieldLabel label="Content type" hint="Required — pick at least one" />
+        <ChipSelect name="tags" control={form.control} options={styleTags.map((t) => ({ value: t.code, label: t.label }))} />
+        {errors.tags && <FieldError message={String(errors.tags.message ?? '')} />}
       </div>
 
       <div>
         <FieldLabel label="Audience style" />
-        <ChipSelect name="audience" control={form.control} options={audienceTags.map(t => ({ value: t.code, label: t.label }))} />
+        <ChipSelect name="audience" control={form.control} options={audienceTags.map((t) => ({ value: t.code, label: t.label }))} />
       </div>
     </div>
   )
 }
 
-function ColorPip({
-  code,
-  label,
-  form,
-}: {
-  code: string
-  label: string
-  form: ReturnType<typeof useForm<FormValues>>
-}) {
+function ColorPip({ code, label, form }: { code: string; label: string; form: ReturnType<typeof useForm<FormValues>> }) {
   const { field } = useController({ name: 'colors', control: form.control })
   const selected = (field.value as string[]) ?? []
   const active = selected.includes(code)
@@ -418,11 +458,7 @@ function ColorPip({
   return (
     <button
       type="button"
-      onClick={() =>
-        field.onChange(
-          active ? selected.filter((c) => c !== code) : [...selected, code]
-        )
-      }
+      onClick={() => field.onChange(active ? selected.filter((c) => c !== code) : [...selected, code])}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -465,27 +501,15 @@ function StepPublish({ handle }: { handle: string }) {
         }}
       >
         manamap.gg/c/{handle || 'your-handle'}
-        {handle && (
-          <span style={{ color: 'var(--g)', marginLeft: 8 }}>✓ available</span>
-        )}
+        {handle && <span style={{ color: 'var(--g)', marginLeft: 8 }}>✓</span>}
       </div>
     </div>
   )
 }
 
-// ── Shared form primitives ────────────────────────────────────────────────────
+// ── Shared primitives ─────────────────────────────────────────────────────────
 
-function FormField({
-  label,
-  hint,
-  error,
-  children,
-}: {
-  label: string
-  hint?: string
-  error?: string
-  children: React.ReactNode
-}) {
+function FormField({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: React.ReactNode }) {
   return (
     <div>
       <FieldLabel label={label} hint={hint} />
@@ -497,30 +521,10 @@ function FormField({
 
 function FieldLabel({ label, hint }: { label: string; hint?: string }) {
   return (
-    <p
-      style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: 11,
-        textTransform: 'uppercase',
-        letterSpacing: '0.06em',
-        color: 'var(--ink-3)',
-        margin: '0 0 6px',
-      }}
-    >
+    <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-3)', margin: '0 0 6px' }}>
       {label}
       {hint && (
-        <span
-          style={{
-            display: 'block',
-            fontFamily: 'var(--font-sans)',
-            textTransform: 'none',
-            letterSpacing: 0,
-            fontSize: 11,
-            color: 'var(--ink-4)',
-            marginTop: 1,
-            fontWeight: 400,
-          }}
-        >
+        <span style={{ display: 'block', fontFamily: 'var(--font-sans)', textTransform: 'none', letterSpacing: 0, fontSize: 11, color: 'var(--ink-4)', marginTop: 1, fontWeight: 400 }}>
           {hint}
         </span>
       )}
@@ -529,33 +533,16 @@ function FieldLabel({ label, hint }: { label: string; hint?: string }) {
 }
 
 function FieldError({ message }: { message: string }) {
-  return (
-    <p style={{ fontSize: 12, color: 'var(--r)', margin: '4px 0 0', fontFamily: 'var(--font-sans)' }}>
-      {message}
-    </p>
-  )
+  return <p style={{ fontSize: 12, color: 'var(--r)', margin: '4px 0 0', fontFamily: 'var(--font-sans)' }}>{message}</p>
 }
 
-function ChipSelect({
-  name,
-  control,
-  options,
-  max,
-}: {
-  name: keyof FormValues
-  control: ReturnType<typeof useForm<FormValues>>['control']
-  options: Array<{ value: string; label: string }>
-  max?: number
-}) {
+function ChipSelect({ name, control, options, max }: { name: keyof FormValues; control: ReturnType<typeof useForm<FormValues>>['control']; options: Array<{ value: string; label: string }>; max?: number }) {
   const { field } = useController({ name, control })
   const selected = (field.value as string[]) ?? []
 
   const toggle = (v: string) => {
-    if (selected.includes(v)) {
-      field.onChange(selected.filter((x) => x !== v))
-    } else if (!max || selected.length < max) {
-      field.onChange([...selected, v])
-    }
+    if (selected.includes(v)) field.onChange(selected.filter((x) => x !== v))
+    else if (!max || selected.length < max) field.onChange([...selected, v])
   }
 
   return (
