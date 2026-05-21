@@ -10,7 +10,7 @@ if (typeof window !== 'undefined') {
   const key = process.env.NEXT_PUBLIC_POSTHOG_KEY
   if (key) {
     posthog.init(key, {
-      api_host: '/ingest',
+      api_host: '/ph',
       ui_host: 'https://us.i.posthog.com',
       capture_pageview: false, // fired manually below
       capture_pageleave: true,
