@@ -6,7 +6,7 @@ frontend:
         - npm ci
     build:
       commands:
-        - env | grep -e CLERK -e DATABASE_URL -e NEXT_PUBLIC -e R2 >> .env.production
+        - env | grep -e CLERK -e DATABASE_URL -e NEXT_PUBLIC -e R2 -e ADMIN_EMAILS -e SENTRY >> .env.production
         - npm run build
   artifacts:
     baseDirectory: .next

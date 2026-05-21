@@ -10,7 +10,9 @@ export async function requireAdmin() {
     .map((e) => e.trim())
     .filter(Boolean)
 
-  const email = user.emailAddresses[0]?.emailAddress
+  const email =
+    user.emailAddresses.find((e) => e.id === user.primaryEmailAddressId)
+      ?.emailAddress ?? user.emailAddresses[0]?.emailAddress
   if (!email || !adminEmails.includes(email)) redirect('/')
 
   return user
