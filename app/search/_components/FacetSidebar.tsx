@@ -56,11 +56,19 @@ export function FacetSidebar({ filters, facets }: Props) {
             overflow: 'hidden',
           }}
         >
+          <label
+            htmlFor="creator-search"
+            style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', borderWidth: 0 }}
+          >
+            Search creators
+          </label>
           <input
+            id="creator-search"
             name="q"
             type="search"
             defaultValue={filters.q}
             placeholder="Search creators…"
+            aria-label="Search creators"
             style={{
               flex: 1,
               border: 'none',
@@ -234,7 +242,8 @@ function FacetLink({
         display: 'flex',
         alignItems: 'center',
         gap: 8,
-        padding: '3px 0',
+        padding: '6px 0',
+        minHeight: 44,
         textDecoration: 'none',
         fontSize: 12,
         color: active ? 'var(--ink)' : 'var(--ink-2)',

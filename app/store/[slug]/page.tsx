@@ -20,9 +20,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     columns: { name: true, address: true },
   })
   if (!store) return { title: 'Store not found' }
+  const title = `${store.name} — ManaMap`
+  const description = `${store.name}${store.address ? ` · ${store.address}` : ''} — local game store profile and event calendar on ManaMap.`
   return {
-    title: store.name,
-    description: `${store.name}${store.address ? ` · ${store.address}` : ''} — local game store profile on ManaMap.`,
+    title: { absolute: title },
+    description,
+    alternates: { canonical: `/store/${slug}` },
+    openGraph: { title, description, url: `/store/${slug}`, type: 'website' },
+    twitter: { card: 'summary_large_image', title, description },
   }
 }
 
@@ -48,6 +53,17 @@ export default async function StorePage({ params }: Props) {
 
   if (!store) notFound()
 
+  const base = (process.env.NEXT_PUBLIC_BASE_URL ?? 'https://manamap.gg').replace(/\/$/, '')
+  const storeSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'LocalBusiness',
+    name: store.name,
+    url: `${base}/store/${store.slug}`,
+    ...(store.address ? { address: { '@type': 'PostalAddress', streetAddress: store.address } } : {}),
+    ...(store.website ? { sameAs: store.website } : {}),
+    ...(store.region ? { areaServed: store.region.name } : {}),
+  }
+
   const today = new Date().toISOString().slice(0, 10)
   const in90 = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
 
@@ -69,6 +85,10 @@ export default async function StorePage({ params }: Props) {
 
   return (
     <main>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(storeSchema).replace(/</g, '\\u003c') }}
+      />
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <div
         style={{

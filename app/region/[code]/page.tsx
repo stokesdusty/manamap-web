@@ -74,10 +74,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = `Find Magic: The Gathering creators based in ${region.name}. Discover local creators, upcoming tournaments, events, and game stores near you.`
 
   return {
-    title,
+    title: { absolute: title },
     description,
-    openGraph: { title, description, url: `/region/${code}`, type: 'website' },
     alternates: { canonical: `/region/${code}` },
+    openGraph: { title, description, url: `/region/${code}`, type: 'website' },
+    twitter: { card: 'summary_large_image', title, description },
   }
 }
 

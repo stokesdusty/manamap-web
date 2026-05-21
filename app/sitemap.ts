@@ -10,9 +10,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     db.query.creatorProfiles.findMany({
       columns: { slug: true, updatedAt: true },
     }),
-    db.query.formatTags.findMany({ columns: { code: true } }),
-    db.query.contentTags.findMany({ columns: { code: true } }),
-    db.query.regions.findMany({ columns: { code: true } }),
+    db.query.formatTags.findMany({ columns: { code: true, updatedAt: true } }),
+    db.query.contentTags.findMany({ columns: { code: true, updatedAt: true } }),
+    db.query.regions.findMany({ columns: { code: true, updatedAt: true } }),
     db.query.events.findMany({ columns: { slug: true, updatedAt: true } }),
     db.query.stores.findMany({ columns: { slug: true, updatedAt: true } }),
   ])
@@ -21,9 +21,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     // Core pages
-    { url: base,           lastModified: now,  changeFrequency: 'daily',  priority: 1.0 },
-    { url: `${base}/search`, lastModified: now, changeFrequency: 'daily',  priority: 0.9 },
-    { url: `${base}/onboard`, changeFrequency: 'monthly', priority: 0.5 },
+    { url: base,             lastModified: now, changeFrequency: 'daily',   priority: 1.0 },
+    { url: `${base}/search`, lastModified: now, changeFrequency: 'daily',   priority: 0.9 },
 
     // Creator profiles
     ...creators.map((c) => ({
@@ -36,6 +35,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Format landing pages
     ...formats.map((f) => ({
       url: `${base}/format/${f.code}`,
+      lastModified: f.updatedAt,
       changeFrequency: 'weekly' as const,
       priority: 0.7,
     })),
@@ -43,6 +43,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Tag landing pages
     ...tags.map((t) => ({
       url: `${base}/tag/${t.code}`,
+      lastModified: t.updatedAt,
       changeFrequency: 'weekly' as const,
       priority: 0.7,
     })),
@@ -50,6 +51,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Region landing pages
     ...allRegions.map((r) => ({
       url: `${base}/region/${r.code}`,
+      lastModified: r.updatedAt,
       changeFrequency: 'weekly' as const,
       priority: 0.7,
     })),

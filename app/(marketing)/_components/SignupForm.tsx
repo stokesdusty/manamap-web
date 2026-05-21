@@ -1,26 +1,40 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { usePostHog } from 'posthog-js/react'
 import { addToWaitlist } from '../actions'
+import type { WaitlistSource } from '../actions'
 
 interface SignupFormProps {
   id?: string
+  source: WaitlistSource
 }
 
-export function SignupForm({ id }: SignupFormProps) {
+export function SignupForm({ id, source }: SignupFormProps) {
   const [email, setEmail] = useState('')
+  const [honeypot, setHoneypot] = useState('')
   const [done, setDone] = useState(false)
+  const [started, setStarted] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
+  const posthog = usePostHog()
+
+  function handleFocus() {
+    if (!started) {
+      setStarted(true)
+      posthog.capture('signup_started', { source })
+    }
+  }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
     startTransition(async () => {
-      const result = await addToWaitlist(email)
+      const result = await addToWaitlist({ email, source, honeypot })
       if (result.ok) {
         setDone(true)
         setEmail('')
+        posthog.capture('waitlist_signup', { source })
       } else {
         setError(result.error)
       }
@@ -29,6 +43,18 @@ export function SignupForm({ id }: SignupFormProps) {
 
   return (
     <div>
+      {/* Honeypot — invisible to humans, filled by bots */}
+      <input
+        type="text"
+        name="company"
+        value={honeypot}
+        onChange={(e) => setHoneypot(e.target.value)}
+        tabIndex={-1}
+        aria-hidden="true"
+        autoComplete="off"
+        style={{ position: 'absolute', left: '-9999px', top: 0, width: 1, height: 1 }}
+      />
+
       <form
         id={id}
         onSubmit={handleSubmit}
@@ -44,10 +70,15 @@ export function SignupForm({ id }: SignupFormProps) {
           marginBottom: 12,
         }}
       >
+        <label htmlFor={`${id ?? source}-email`} style={{ position: 'absolute', left: '-9999px' }}>
+          Email address
+        </label>
         <input
+          id={`${id ?? source}-email`}
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          onFocus={handleFocus}
           placeholder="you@email.com"
           required
           disabled={done || pending}
@@ -86,6 +117,7 @@ export function SignupForm({ id }: SignupFormProps) {
 
       {error && (
         <p
+          role="alert"
           style={{
             fontSize: 13,
             color: 'var(--r)',

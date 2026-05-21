@@ -28,17 +28,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const creator = await getCreatorBySlug(slug)
   if (!creator) return { title: 'Creator not found' }
 
-  const description = creator.bio
-    ? creator.bio.length > 155
-      ? `${creator.bio.slice(0, 154)}…`
-      : creator.bio
-    : `${creator.displayName} on ManaMap — MTG creator directory.`
+  const bio = creator.bio ?? ''
+  const description = bio
+    ? bio.length > 155
+      ? `${bio.slice(0, 154)}…`
+      : bio
+    : `${creator.displayName} is an MTG content creator on ManaMap — the Magic: The Gathering creator directory.`
 
-  const title = `${creator.displayName} on ManaMap`
+  const title = `${creator.displayName} — ManaMap`
 
   return {
-    title: creator.displayName,
+    title: { absolute: title },
     description,
+    alternates: { canonical: `/c/${creator.slug}` },
+    robots: { index: true, follow: true },
     openGraph: {
       title,
       description,
@@ -46,7 +49,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       type: 'profile',
     },
     twitter: {
-      card: 'summary',
+      card: 'summary_large_image',
       title,
       description,
     },
@@ -123,8 +126,28 @@ export default async function CreatorProfilePage({ params }: Props) {
 
   // ── Render ────────────────────────────────────────────────────────────────
 
+  const base = (process.env.NEXT_PUBLIC_BASE_URL ?? 'https://manamap.gg').replace(/\/$/, '')
+  const sameAs = [
+    creator.websiteUrl,
+    ...creator.socialAccounts.map((a) => a.url),
+  ].filter(Boolean)
+
+  const personSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: creator.displayName,
+    url: `${base}/c/${creator.slug}`,
+    ...(creator.bio ? { description: creator.bio } : {}),
+    ...(creator.avatarUrl ? { image: creator.avatarUrl } : {}),
+    ...(sameAs.length > 0 ? { sameAs } : {}),
+  }
+
   return (
     <main>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(personSchema).replace(/</g, '\\u003c') }}
+      />
       <ProfileViewCapture slug={slug} />
       {!creator.published && (
         <ClaimBanner

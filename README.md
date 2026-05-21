@@ -307,3 +307,121 @@ Claude Code will auto-load `CLAUDE.md` and treat it as persistent project contex
 - Live data — every number, name, and avatar in the mocks is illustrative
 - Mobile-app source — mobile mocks are responsive web only
 - Legal/ToS/privacy copy
+
+---
+
+## Production Checklist
+
+### Required environment variables
+
+Set every variable below in Vercel → Project → Settings → Environment Variables before deploying to Production.
+
+```
+# Database (Neon)
+DATABASE_URL
+
+# Auth (Clerk)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+CLERK_SECRET_KEY
+NEXT_PUBLIC_CLERK_SIGN_IN_URL
+NEXT_PUBLIC_CLERK_SIGN_UP_URL
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL
+
+# Asset storage (Cloudflare R2)
+R2_ACCOUNT_ID
+R2_ACCESS_KEY_ID
+R2_SECRET_ACCESS_KEY
+R2_BUCKET_NAME
+R2_PUBLIC_BASE_URL
+
+# Email (Resend)
+RESEND_API_KEY
+RESEND_AUDIENCE_ID          # audience ID for "manamap-waitlist"
+RESEND_FROM_EMAIL           # e.g. hello@manamap.gg
+
+# Analytics (PostHog)
+NEXT_PUBLIC_POSTHOG_KEY
+NEXT_PUBLIC_POSTHOG_HOST    # defaults to https://us.i.posthog.com
+
+# Error tracking (Sentry)
+NEXT_PUBLIC_SENTRY_DSN
+SENTRY_DSN                  # same value as above; used server-side
+SENTRY_ORG                  # Sentry org slug (for source-map uploads)
+SENTRY_PROJECT              # Sentry project slug
+SENTRY_AUTH_TOKEN           # CI/build token for source-map uploads
+
+# Rate limiting (Upstash Redis)
+UPSTASH_REDIS_REST_URL
+UPSTASH_REDIS_REST_TOKEN
+
+# External APIs
+YOUTUBE_API_KEY
+TWITCH_CLIENT_ID
+TWITCH_CLIENT_SECRET
+
+# Admin access
+ADMIN_EMAILS                # comma-separated, e.g. you@example.com,co@example.com
+
+# App
+NEXT_PUBLIC_BASE_URL        # canonical origin, e.g. https://manamap.gg
+NEXT_PUBLIC_LAUNCHED        # set to "true" to flip out of pre-launch mode (see below)
+```
+
+### Launch flip: NEXT_PUBLIC_LAUNCHED
+
+Default value is `false` (or omit the variable entirely). While `false`:
+- A "Coming soon" banner is shown at the top of the landing page.
+- The nav "Sign in" link points to `/sign-up` (directs early visitors to claim/waitlist).
+
+When you're ready to soft-launch:
+1. Set `NEXT_PUBLIC_LAUNCHED=true` in Vercel Environment Variables.
+2. Trigger a redeploy (or the next push will pick it up automatically).
+3. The banner disappears and "Sign in" now routes to `/sign-in`.
+
+Signups (`/sign-up`) remain open in both states.
+
+### Database migration
+
+Run Drizzle migrations against the Neon production branch before the first deploy:
+
+```bash
+npx drizzle-kit push
+```
+
+Or, if using migration files:
+
+```bash
+npx drizzle-kit migrate
+```
+
+Verify the schema by opening the Neon console → Tables.
+
+### Initial admin setup
+
+1. Sign up with the email address you want as admin.
+2. Add that email to the `ADMIN_EMAILS` environment variable (comma-separated for multiple).
+3. Redeploy or wait for the next deployment.
+4. Visit `/admin` to verify access.
+
+### DNS
+
+Point your domain at Vercel:
+- Add the domain in Vercel → Project → Settings → Domains.
+- At your DNS registrar, add the A/CNAME records Vercel provides.
+- Vercel provisions a TLS certificate automatically.
+- Set `NEXT_PUBLIC_BASE_URL` to the canonical HTTPS origin once DNS propagates.
+
+### Resend — waitlist audience
+
+- Audience ID is already set in `RESEND_AUDIENCE_ID`.
+- To export the waitlist: Resend dashboard → Audiences → manamap-waitlist → Export CSV.
+- Unsubscribed contacts are excluded from exports by default.
+
+### Status page
+
+Visit `/status` (admin-gated) to check DB connectivity, creator/event/store counts, and waitlist size in one place. Useful for the first few days after launch.
+
+### Sentry source maps
+
+`SENTRY_AUTH_TOKEN` must be set in Vercel for source maps to upload during builds. Generate a token at sentry.io → Settings → Auth Tokens with `project:releases` scope. The `withSentryConfig` wrapper in `next.config.ts` handles the upload automatically on Vercel (`VERCEL=1` is set by the platform).

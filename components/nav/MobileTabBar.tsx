@@ -7,7 +7,7 @@ const TABS = [
     label: 'Discover',
     href: '/',
     icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
         <circle cx="10" cy="10" r="7" />
         <path d="M10 6.5v3.5l2.5 2.5" />
       </svg>
@@ -17,7 +17,7 @@ const TABS = [
     label: 'Search',
     href: '/search',
     icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
         <circle cx="8.5" cy="8.5" r="5" />
         <path d="M15 15l-3-3" />
       </svg>
@@ -27,7 +27,7 @@ const TABS = [
     label: 'Saved',
     href: '/saved',
     icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M5 3h10a1 1 0 011 1v13l-6-4-6 4V4a1 1 0 011-1z" />
       </svg>
     ),
@@ -36,7 +36,7 @@ const TABS = [
     label: 'Me',
     href: '/dashboard',
     icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
         <circle cx="10" cy="7" r="3" />
         <path d="M4 17c0-3.3 2.7-6 6-6s6 2.7 6 6" />
       </svg>

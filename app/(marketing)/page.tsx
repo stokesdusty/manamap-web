@@ -6,17 +6,21 @@ import { Pip } from '@/components/ui/Pip'
 // ── Metadata ──────────────────────────────────────────────────────────────────
 
 export const metadata: Metadata = {
-  title: 'ManaMap — The directory for MTG creators',
+  title: { absolute: 'ManaMap — The directory for MTG creators' },
   description:
     'ManaMap is the discovery and infrastructure layer for the MTG creator ecosystem. Find creators by format, content style, audience, and region — then see where they\'re streaming, posting, and showing up next.',
+  alternates: { canonical: '/' },
   openGraph: {
     title: 'ManaMap — The directory for MTG creators',
-    description:
-      'Search 1,400+ creators by format, content style, audience, and region.',
+    description: 'Search 1,400+ creators by format, content style, audience, and region.',
     url: '/',
     type: 'website',
   },
-  twitter: { card: 'summary_large_image' },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ManaMap — The directory for MTG creators',
+    description: 'Search 1,400+ creators by format, content style, audience, and region.',
+  },
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -34,9 +38,11 @@ const WUBRG = [
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
+  const launched = process.env.NEXT_PUBLIC_LAUNCHED === 'true'
   return (
     <div style={{ fontFamily: 'var(--font-sans)', background: 'var(--paper)' }}>
-      <LandingNav />
+      {!launched && <ComingSoonBanner />}
+      <LandingNav launched={launched} />
       <Hero />
       <Quote />
       <Shot1 />
@@ -52,9 +58,30 @@ export default function LandingPage() {
   )
 }
 
+// ── Pre-launch banner ─────────────────────────────────────────────────────────
+
+function ComingSoonBanner() {
+  return (
+    <div
+      style={{
+        background: 'var(--ink)',
+        color: 'var(--paper)',
+        textAlign: 'center',
+        padding: '10px 32px',
+        fontFamily: 'var(--font-mono)',
+        fontSize: 11,
+        textTransform: 'uppercase',
+        letterSpacing: '0.08em',
+      }}
+    >
+      Coming soon — join the waitlist below and we'll email you when it's live.
+    </div>
+  )
+}
+
 // ── Nav ───────────────────────────────────────────────────────────────────────
 
-function LandingNav() {
+function LandingNav({ launched }: { launched: boolean }) {
   return (
     <nav
       style={{
@@ -103,7 +130,7 @@ function LandingNav() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <Show when="signed-out">
             <a
-              href="/sign-in"
+              href={launched ? '/sign-in' : '/sign-up'}
               style={{
                 fontFamily: 'var(--font-mono)',
                 fontSize: 11,
@@ -229,7 +256,7 @@ function Hero() {
               region. See where they're streaming, posting, and showing up next.
             </p>
 
-            <SignupForm id="waitlist" />
+            <SignupForm id="waitlist" source="hero" />
 
             <div
               style={{
@@ -905,7 +932,7 @@ function FinalCTA() {
         </p>
 
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-          <SignupForm />
+          <SignupForm source="final_cta" />
         </div>
 
         <div

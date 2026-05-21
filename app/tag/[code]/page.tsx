@@ -85,10 +85,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = `Find Magic: The Gathering creators focused on ${tag.label.toLowerCase()} content. Browse ${tag.label.toLowerCase()} deck techs, gameplay, strategy, and more.`
 
   return {
-    title,
+    title: { absolute: title },
     description,
-    openGraph: { title, description, url: `/tag/${code}`, type: 'website' },
     alternates: { canonical: `/tag/${code}` },
+    openGraph: { title, description, url: `/tag/${code}`, type: 'website' },
+    twitter: { card: 'summary_large_image', title, description },
   }
 }
 

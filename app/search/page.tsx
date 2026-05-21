@@ -4,6 +4,7 @@ import { Chip } from '@/components/ui/Chip'
 import { Pip } from '@/components/ui/Pip'
 import { Hairline } from '@/components/ui/Hairline'
 import { FacetSidebar } from './_components/FacetSidebar'
+import { SearchTracker } from './_components/SearchTracker'
 import { FiltersDrawer } from '@/components/search/FiltersDrawer'
 import {
   searchCreators,
@@ -20,9 +21,10 @@ import { PLATFORM_LABEL, formatCount } from '@/lib/format'
 // ── Metadata ──────────────────────────────────────────────────────────────────
 
 export const metadata: Metadata = {
-  title: 'Search Creators',
+  title: { absolute: 'Find MTG Creators — ManaMap' },
   description:
-    'Search MTG creators by format, content style, audience, and region.',
+    'Search and filter 1,400+ Magic: The Gathering creators by format, content style, audience, and region. Find the exact creator you\'re looking for.',
+  alternates: { canonical: '/search' },
 }
 
 // ── searchParams schema ───────────────────────────────────────────────────────
@@ -84,6 +86,7 @@ export default async function SearchPage({ searchParams }: Props) {
 
   return (
     <main>
+      <SearchTracker />
       {/* ── Page header ─────────────────────────────────────────────────── */}
       <div
         style={{

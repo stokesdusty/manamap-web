@@ -202,7 +202,8 @@ function YouTubeVideoTile({ video }: { video: YouTubeVideoItem }) {
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={video.thumbnailUrl}
-            alt=""
+            alt={video.title}
+            loading="lazy"
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           />
         )}
@@ -281,7 +282,8 @@ function ContentTile({ item }: { item: FeaturedItem }) {
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={item.thumbnailUrl}
-            alt=""
+            alt={item.title}
+            loading="lazy"
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           />
         )}

@@ -20,13 +20,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     columns: { name: true, startDate: true, locationName: true },
   })
   if (!event) return { title: 'Event not found' }
-  const description = [
-    event.locationName,
-    formatShortDate(event.startDate),
-  ].filter(Boolean).join(' · ')
+  const datePart = [event.locationName, formatShortDate(event.startDate)].filter(Boolean).join(' · ')
+  const title = `${event.name} — ManaMap`
+  const description = `${event.name} — ${datePart}. See the creator lineup and schedule on ManaMap.`
   return {
-    title: event.name,
-    description: `${event.name} — ${description}. See the creator lineup and schedule on ManaMap.`,
+    title: { absolute: title },
+    description,
+    alternates: { canonical: `/event/${slug}` },
+    openGraph: { title, description, url: `/event/${slug}`, type: 'website' },
+    twitter: { card: 'summary_large_image', title, description },
   }
 }
 
@@ -84,6 +86,18 @@ export default async function EventPage({ params }: Props) {
 
   if (!event) notFound()
 
+  const base = (process.env.NEXT_PUBLIC_BASE_URL ?? 'https://manamap.gg').replace(/\/$/, '')
+  const eventSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Event',
+    name: event.name,
+    startDate: event.startDate,
+    ...(event.endDate ? { endDate: event.endDate } : {}),
+    eventStatus: 'https://schema.org/EventScheduled',
+    url: `${base}/event/${event.slug}`,
+    ...(event.locationName ? { location: { '@type': 'Place', name: event.locationName } } : {}),
+  }
+
   // Nearby stores: same region
   const nearbyStores = event.regionId
     ? await db.query.stores.findMany({
@@ -110,6 +124,10 @@ export default async function EventPage({ params }: Props) {
 
   return (
     <main>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(eventSchema).replace(/</g, '\\u003c') }}
+      />
       {/* ── Dark hero band ───────────────────────────────────────────── */}
       <div
         style={{

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Newsreader, Geist, Geist_Mono } from 'next/font/google'
 import { ClerkProvider } from '@clerk/nextjs'
 import { MobileTabBar } from '@/components/nav/MobileTabBar'
+import { Providers } from './providers'
 import './globals.css'
 
 const newsreader = Newsreader({
@@ -50,8 +51,10 @@ export default function RootLayout({
         className={`${newsreader.variable} ${geist.variable} ${geistMono.variable} h-full`}
       >
         <body className="min-h-full flex flex-col bg-paper text-ink antialiased">
-          {children}
-          <MobileTabBar />
+          <Providers>
+            {children}
+            <MobileTabBar />
+          </Providers>
         </body>
       </html>
     </ClerkProvider>
