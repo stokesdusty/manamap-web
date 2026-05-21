@@ -14,6 +14,7 @@ if (typeof window !== 'undefined') {
       ui_host: 'https://us.i.posthog.com',
       capture_pageview: false, // fired manually below
       capture_pageleave: true,
+      disable_dead_clicks: true,
     })
   }
 }
