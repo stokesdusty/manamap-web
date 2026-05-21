@@ -11,6 +11,7 @@ import { Pip } from '@/components/ui/Pip'
 import { Hairline } from '@/components/ui/Hairline'
 import { ProfileTabs } from './_components/ProfileTabs'
 import { ProfileViewCapture } from './_components/ProfileViewCapture'
+import { ClaimBanner } from './_components/ClaimBanner'
 import type { AppearanceItem, FeaturedItem, YouTubeVideoItem } from './_components/ProfileTabs'
 
 // ── Cache / revalidation ──────────────────────────────────────────────────────
@@ -125,6 +126,13 @@ export default async function CreatorProfilePage({ params }: Props) {
   return (
     <main>
       <ProfileViewCapture slug={slug} />
+      {!creator.published && (
+        <ClaimBanner
+          creatorUserId={creator.userId ?? null}
+          displayName={creator.displayName}
+          slug={creator.slug}
+        />
+      )}
       {/* ── Profile hero ─────────────────────────────────────────────────── */}
       <div
         style={{
